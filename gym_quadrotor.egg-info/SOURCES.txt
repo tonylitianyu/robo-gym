@@ -1,0 +1,7 @@
+README.md
+setup.py
+gym_quadrotor.egg-info/PKG-INFO
+gym_quadrotor.egg-info/SOURCES.txt
+gym_quadrotor.egg-info/dependency_links.txt
+gym_quadrotor.egg-info/requires.txt
+gym_quadrotor.egg-info/top_level.txt
