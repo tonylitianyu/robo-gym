@@ -2,9 +2,10 @@
 
 ### Authors: Tianyu Li (Anthony), Weizhuo Wang (Ken)
 
-This is an OpenAI gym simulation environment designed for Reinforcement Learning(RL) agent training. The repo itself contains the common framework structure for RL training and the simulator. To use this repo, users should:
-1. Enter the learning algorithm in Agent.py
-2. Provide simulation rendering model in vpython. (An example of the gym_quadrotor enviroment is given, follow the format to create a new folder if you need to train other kinds of agent such as a mobile robot)
+This is an OpenAI gym simulation environment designed for Reinforcement Learning(RL) agent training. The repo itself contains the common framework structure for RL training and the simulator. An example of a quadrotor environment and RL agent is given. To use this repo with customization, users should:
+1. Enter the learning algorithm in <strong>Agent.py</strong>.
+2. Provide simulation rendering vpython model in <strong>gym_quadrotor/envs/quadrotor_env.py</strong>.
+3. Provide reward function in <strong>Agent.py</strong>.
 
 ![Screenshot](sss.png)
 

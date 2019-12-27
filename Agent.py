@@ -208,6 +208,24 @@ class Agent:
 				target_param.data * (1.0 - self.learning_rate) + source_param.data * self.learning_rate
 			)
 
+	def rewardFunc(self,state):
+		x = state[0]
+		y = state[2]
+		z = state[4]
+		reward = 0
+		#tranable
+		if abs(x) > 10 or abs(z) > 10 or abs(y) > 10:
+		    reward -= 100
+
+		if abs(x) > 5 or abs(z) > 5 or abs(y) > 5:
+		    reward -= 10
+
+		if abs(x) < 5 or abs(z) < 5 or abs(y) < 5:
+		    reward -= (abs(x)+abs(z)+abs(y))/10
+
+		return reward
+
+
 
 	def train(self):
 		s,a,r,ns = self.memory.sample(self.batch_size)

@@ -30,22 +30,24 @@ x_axis_min = 0
 while run:
     episode += 1
     curr_state = np.float32(env.reset())
-    #input z row pitch yaw
+
+    #run each episode
     for r in range(single_episode_time):
         env.render()
         curr_state = np.float32(curr_state)
 
-        #try the model each 10 episode
+        #try the model each 10 episodes
         if episode % 10 == 0:
             action = agent.use_action(curr_state)
         else:
             action = agent.get_action(curr_state)
 
 
-        n_state, reward, done = env.step(action)
+        n_state, done = env.step(action)#input [thrust row pitch yaw]
+        reward = agent.rewardFunc(n_state)
         #reward in this episode
         curr_reward += reward
-        if done:
+        if done: #if out of bound
             n_state = None
             curr_state = None
             break

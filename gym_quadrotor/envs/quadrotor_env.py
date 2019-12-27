@@ -85,7 +85,10 @@ class QuadrotorEnv(gym.Env):
 
         reward = 0
         done = False
-        return self.state,reward, done
+        #if in any of the direction, the drone is going out of bounds, terminate this episode
+        if max(np.absolute(self.state[[0,2,4]])) > 50:
+            done = True
+        return self.state,done
 
 
     def reset(self):
@@ -207,8 +210,7 @@ class QuadrotorEnv(gym.Env):
         return x1Dot, x2Dot, y1Dot, y2Dot, z1Dot, z2Dot, phiDot, thetaDot, psiDot, pDot, qDot, rDot, 0.,0.,0.,0.
 
 
-    def rewardFunc():
-        ...
+
 
 
     def LQRTest(self):
