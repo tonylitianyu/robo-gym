@@ -62,11 +62,11 @@ class QuadrotorEnv(gym.Env):
 
     def step(self, action):
         self.input = action
-        X_goal = np.array([10,0,10,0,10,0,0,0,0,0,0,0])
-        error = self.state-X_goal
-        error = np.reshape(error,(12,1))
-
-        self.input = -self.LQRTest()@error
+        # X_goal = np.array([10,0,10,0,10,0,0,0,0,0,0,0])
+        # error = self.state-X_goal
+        # error = np.reshape(error,(12,1))
+        #
+        # self.input = -self.LQRTest()@error
         # self.input[0] = self.limitTorque(self.input[0],'t')
         # self.input[2] = self.limitTorque(self.input[2],'x')
 
@@ -89,7 +89,19 @@ class QuadrotorEnv(gym.Env):
 
 
     def reset(self):
-        ...
+        self.state = np.array([0,0,0,0,0,0,0,0,0,0,0,0],dtype=np.float32)
+        self.drone.pos = vector(0,0,0)
+        self.drone.axis = vector(1,0,0)
+        self.drone.up = vector(0,1,0)
+        self.xPointer.pos = self.drone.pos
+        self.yPointer.pos = self.drone.pos
+        self.zPointer.pos = self.drone.pos
+
+        self.yPointer.axis = 7*self.drone.axis
+        self.zPointer.axis = 7*self.drone.up
+        xaxis = self.drone.axis.cross(self.zPointer.axis)
+        self.xPointer.axis = xaxis
+        return self.state
     def initRender(self):
         self.canvas = canvas(width=1200, height=900, title='Quadrotor-3D')
         ground_y = -0.5
@@ -126,11 +138,11 @@ class QuadrotorEnv(gym.Env):
         rate(FPS)
 
     def render(self, mode='human', close=False):
-        self.t += 0.001
+        #self.t += 0.001
         phi_   = self.state[6]
         theta_ = self.state[7]
         psi_   = self.state[8]
-        print(self.state)
+        #print(self.state)
         self.drone.pos = vector(self.state[2],self.state[4],self.state[0])
         self.drone.up = vector(0,1,0)#vector(-math.sin(phi_),math.cos(phi_)+math.cos(theta_),math.sin(theta_))
         self.drone.axis = vector(1,0,0)#vector(math.cos(psi_),(math.sin(phi_)*math.cos(psi_)-math.sin(theta_)*math.sin(psi_))/(math.cos(phi_)*math.cos(theta_)),math.sin(psi_))
