@@ -19,6 +19,7 @@ agent = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.act
 
 #initialization
 run = True
+render = False
 curr_reward = 0
 episode = 0
 reward_arr = []
@@ -33,7 +34,8 @@ while run:
 
     #run each episode
     for r in range(single_episode_time):
-        env.render()
+        if render:
+            env.render()
         curr_state = np.float32(curr_state)
 
         #try the model each 10 episodes

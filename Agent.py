@@ -9,7 +9,7 @@ import os
 import random
 from collections import deque
 import pickle
-
+import math
 
 def normalize_weight(size):
 	v = 1. / np.sqrt(size[0])
@@ -212,16 +212,24 @@ class Agent:
 		x = state[0]
 		y = state[2]
 		z = state[4]
+		phi_   = state[6]
+		theta_ = state[7]
+		psi_   = state[8]
 		reward = 0
 		#tranable
-		if abs(x) > 10 or abs(z) > 10 or abs(y) > 10:
-		    reward -= 100
+		distance = math.sqrt((x**2)+(y**2)+(z**2))
 
-		if abs(x) > 5 or abs(z) > 5 or abs(y) > 5:
-		    reward -= 10
+		if distance > 10:
+			reward = -100
+		elif distance < 10 and distance > 5:
+			reward = -50
+		elif distance < 5 and distance > 1:
+			reward = -20
+			reward -= abs(phi_*10)+abs(theta_*10)+abs(psi_*10)
 
-		if abs(x) < 5 or abs(z) < 5 or abs(y) < 5:
-		    reward -= (abs(x)+abs(z)+abs(y))/10
+		elif distance < 1:
+			reward = 200
+			reward -= abs(phi_*30)+abs(theta_*30)+abs(psi_*30)
 
 		return reward
 
