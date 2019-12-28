@@ -19,7 +19,7 @@ agent = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.act
 
 #initialization
 run = True
-render = False
+render = True
 curr_reward = 0
 episode = 0
 reward_arr = []

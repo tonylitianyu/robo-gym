@@ -11,6 +11,8 @@ from collections import deque
 import pickle
 import math
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 def normalize_weight(size):
 	v = 1. / np.sqrt(size[0])
 	return torch.Tensor(size).uniform_(-v, v)
@@ -27,6 +29,7 @@ class Critic(nn.Module):
 
 		self.fcs1 = nn.Linear(state_dim,256)
 		self.fcs1.weight.data = normalize_weight(self.fcs1.weight.data.size())
+
 		self.fcs2 = nn.Linear(256,128)
 		self.fcs2.weight.data = normalize_weight(self.fcs2.weight.data.size())
 
@@ -39,8 +42,16 @@ class Critic(nn.Module):
 		self.fc3 = nn.Linear(128,1)
 		self.fc3.weight.data.uniform_(-self.EPS,self.EPS)
 
-	def forward(self, state, action):
 
+		self.fcs1.to(device)
+		self.fcs2.to(device)
+		self.fca1.to(device)
+		self.fc2.to(device)
+		self.fc3.to(device)
+
+	def forward(self, state, action):
+		state = state.to(device)
+		action = action.to(device)
 		s1 = F.relu(self.fcs1(state))
 		s2 = F.relu(self.fcs2(s1))
 		a1 = F.relu(self.fca1(action))
@@ -75,8 +86,13 @@ class Actor(nn.Module):
 		self.fc4 = nn.Linear(64,action_dim)
 		self.fc4.weight.data.uniform_(-self.EPS,self.EPS)
 
-	def forward(self, state):
+		self.fc1.to(device)
+		self.fc2.to(device)
+		self.fc3.to(device)
+		self.fc4.to(device)
 
+	def forward(self, state):
+		state = state.to(device)
 		x = F.relu(self.fc1(state))
 		x = F.relu(self.fc2(x))
 		x = F.relu(self.fc3(x))
@@ -137,6 +153,7 @@ class Memory:
 
 class Agent:
 	def __init__(self, state_size, action_size, max_action, memory):
+		print(device)
 		self.state_size = state_size
 		self.action_size = action_size
 		self.max_action = max_action
@@ -189,13 +206,13 @@ class Agent:
 	def use_action(self,state):
 		state = Variable(torch.from_numpy(state))
 		action = self.target_actor.forward(state).detach()
-		return action.data.numpy()
+		return action.cpu().numpy()#action.data.numpy()
 
 
 	def get_action(self, state):
 		state = Variable(torch.from_numpy(state))
 		action = self.actor.forward(state).detach()
-		return action.data.numpy() + self.noiseMachine.randomNoise()
+		return action.cpu().numpy() + self.noiseMachine.randomNoise()
 
 	def copy(self,target, source):
 		for target_param, source_param in zip(target.parameters(), source.parameters()):
@@ -225,11 +242,11 @@ class Agent:
 			reward = -50
 		elif distance < 5 and distance > 1:
 			reward = -20
-			reward -= abs(phi_*10)+abs(theta_*10)+abs(psi_*10)
+			reward -= abs(phi_*50)+abs(theta_*50)+abs(psi_*50)
 
 		elif distance < 1:
 			reward = 200
-			reward -= abs(phi_*30)+abs(theta_*30)+abs(psi_*30)
+			reward -= abs(phi_*150)+abs(theta_*150)+abs(psi_*150)
 
 		return reward
 
@@ -239,9 +256,13 @@ class Agent:
 		s,a,r,ns = self.memory.sample(self.batch_size)
 
 		s = Variable(torch.from_numpy(s))
+		s = s.to(device)
 		a = Variable(torch.from_numpy(a))
+		a = a.to(device)
 		r = Variable(torch.from_numpy(r))
+		r = r.to(device)
 		ns = Variable(torch.from_numpy(ns))
+		ns = ns.to(device)
 
 		a2 = self.target_actor.forward(ns).detach()
 		next_val = torch.squeeze(self.target_critic.forward(ns, a2).detach())
