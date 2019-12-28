@@ -19,30 +19,36 @@ agent = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.act
 
 #initialization
 run = True
-render = True
+render = False
 curr_reward = 0
 episode = 0
 reward_arr = []
 line, = plt.plot(reward_arr)
 x_axis_min = 0
 
-
+goodResult = False
 
 while run:
     episode += 1
     curr_state = np.float32(env.reset())
 
     #run each episode
+
     for r in range(single_episode_time):
         if render:
             env.render()
         curr_state = np.float32(curr_state)
 
-        #try the model each 10 episodes
-        if episode % 10 == 0:
+
+        if goodResult == True: #stop learning
+            agent.learning_rate = 0.0
             action = agent.use_action(curr_state)
         else:
-            action = agent.get_action(curr_state)
+            #try the model each 10 episodes
+            if episode % 10 == 0:
+                action = agent.use_action(curr_state)
+            else:
+                action = agent.get_action(curr_state)
 
 
         n_state, done = env.step(action)#input [thrust row pitch yaw]
@@ -60,6 +66,12 @@ while run:
 
     #record reward for each episode
     reward_arr.append(curr_reward)
+
+    #stop learnng condition
+    if episode > 1000 and max(reward_arr) > 10000:
+        goodResult = True
+
+
     #save model each 50 episode
     if episode % 50 == 0:
         agent.saveNetwork()
