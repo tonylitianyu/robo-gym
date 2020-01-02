@@ -31,8 +31,6 @@ To use this repo with customization, users should:
 3. Run the gym environment
 > python3 main.py
 
-
-
 ##### Important files: 
 
 |#| File Name          | Description     |

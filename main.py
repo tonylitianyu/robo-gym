@@ -13,20 +13,26 @@ from Agent import Agent, Memory
 memory_size = 1000000
 single_episode_time = 300
 memory = Memory(memory_size)
-agent = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0], memory)
+agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0], memory)
 #########
 
 
-#initialization
+# Vars Init
 run = True
 render = False
 curr_reward = 0
 episode = 0
 reward_arr = []
-line, = plt.plot(reward_arr)
 x_axis_min = 0
-
 goodResult = False
+
+
+# Plot Init
+fig = plt.figure(figsize=(13,6))
+ax1 = fig.add_subplot(111)
+line, = ax1.plot(reward_arr)
+plt.xlabel("Number of episodes");plt.ylabel("Reward");
+plt.grid();plt.ion();plt.show()
 
 while run:
     episode += 1
@@ -71,20 +77,20 @@ while run:
     if episode > 1000 and max(reward_arr) > 10000:
         goodResult = True
 
-
-    #save model each 50 episode
+    # Save model every 50 episode
     if episode % 50 == 0:
         agent.saveNetwork()
         memory.save()
-    #reward plot
+
+    # Update reward plot
     if episode % 1000 == 0:
         x_axis_min = episode
-
     plt.axis([x_axis_min, episode, min(reward_arr), max(reward_arr)])
     line.set_xdata(np.arange(len(reward_arr)))
     line.set_ydata(reward_arr)
-    plt.draw()
-    plt.pause(0.01)
-    curr_reward = 0
+    fig.canvas.flush_events()
+    # plt.draw()
+    # plt.pause(0.01)
 
+    curr_reward = 0
     gc.collect()
