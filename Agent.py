@@ -196,12 +196,13 @@ class Agent:
 		else:
 		    self.target_critic = Critic(self.state_size, self.action_size)
 
-	def saveNetwork(self):
-		torch.save(self.actor, 'model/quadrotor_actor.pkl')
-		torch.save(self.target_actor, 'model/quadrotor_target_actor.pkl')
-		torch.save(self.critic, 'model/quadrotor_critic.pkl')
-		torch.save(self.target_critic, 'model/quadrotor_target_critic.pkl')
-		pickle.dump(self.noiseMachine.x, open('model/noise.p','wb'))
+	def saveNetwork(self,isbest):
+		if isbest:
+			torch.save(self.actor, 'model/quadrotor_actor.pkl')
+			torch.save(self.target_actor, 'model/quadrotor_target_actor.pkl')
+			torch.save(self.critic, 'model/quadrotor_critic.pkl')
+			torch.save(self.target_critic, 'model/quadrotor_target_critic.pkl')
+			pickle.dump(self.noiseMachine.x, open('model/noise.p','wb'))
 
 
 	def use_action(self,state):
@@ -235,7 +236,14 @@ class Agent:
 		psi_   = state[8]
 		reward = 0
 		#tranable
-		distance = math.sqrt((x**2)+(y**2)+(z**2))
+		agent_pos = np.array([x,y,z],dtype=float)
+		des_pos = np.array([0,0,0],dtype=float)
+		distance = np.linalg.norm(agent_pos-des_pos)
+
+		# if distance > 1:
+		# 	reward = -distance*10
+		# else:
+		# 	reward = 30.0/distance
 
 		if distance > 10:
 			reward = -100
@@ -268,7 +276,7 @@ class Agent:
 		a2 = self.target_actor.forward(ns).detach()
 		next_val = torch.squeeze(self.target_critic.forward(ns, a2).detach())
 
-		tic = time.time()
+		# tic = time.time()
 
 		y_expected = r + self.gamma*next_val
 
@@ -279,7 +287,7 @@ class Agent:
 		loss_critic.backward()
 		self.optim_c.step()
 
-		toc1 = time.time()-tic
+		# toc1 = time.time()-tic
 
 		pred_a = self.actor.forward(s)
 		loss_actor = -1*torch.sum(self.critic.forward(s, pred_a))
@@ -290,5 +298,5 @@ class Agent:
 		self.updateTarget(self.target_actor, self.actor)
 		self.updateTarget(self.target_critic, self.critic)
 
-		toc = time.time()-tic
-		print(toc1,toc)
+		# toc = time.time()-tic
+		# print(toc1,toc)

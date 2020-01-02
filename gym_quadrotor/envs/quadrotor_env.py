@@ -37,7 +37,7 @@ class QuadrotorEnv(gym.Env):
 
         #time
         self.t = 0
-        self.dt = 0.05
+        self.dt = 0.02
 
         #drone moment of inertia property
         self.motor_mass = 1;
@@ -65,7 +65,7 @@ class QuadrotorEnv(gym.Env):
 
     def setdt(self,dt):
         self.dt = dt
-        
+
     def step(self, action):
         self.input = action
         # X_goal = np.array([10,0,10,0,10,0,0,0,0,0,0,0])
