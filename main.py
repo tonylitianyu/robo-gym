@@ -4,6 +4,7 @@ import numpy as np
 
 import os
 import gc
+import time
 import matplotlib.pyplot as plt
 
 env = gym.make('quad-v0')
@@ -19,13 +20,15 @@ agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.ac
 
 # Vars Init
 run = True
-render = False
+render = True
 curr_reward = 0
 episode = 0
 reward_arr = []
 x_axis_min = 0
 goodResult = False
 
+env.setrender(render)
+env.setdt(0.02)
 
 # Plot Init
 fig = plt.figure(figsize=(13,6))
@@ -34,13 +37,15 @@ line, = ax1.plot(reward_arr)
 plt.xlabel("Number of episodes");plt.ylabel("Reward");
 plt.grid();plt.ion();plt.show()
 
-while run:
+# while run:
+while episode < 5:
     episode += 1
     curr_state = np.float32(env.reset())
 
     #run each episode
 
     for r in range(single_episode_time):
+        
         if render:
             env.render()
         curr_state = np.float32(curr_state)
@@ -56,11 +61,11 @@ while run:
             else:
                 action = agent.get_action(curr_state)
 
-
         n_state, done = env.step(action)#input [thrust row pitch yaw]
         reward = agent.rewardFunc(n_state)
         #reward in this episode
         curr_reward += reward
+
         if done: #if out of bound
             n_state = None
             curr_state = None
@@ -69,6 +74,8 @@ while run:
             memory.add(curr_state,action,reward,np.float32(n_state))
             curr_state = n_state
             agent.train()
+
+        print('cycle')
 
     #record reward for each episode
     reward_arr.append(curr_reward)
@@ -85,7 +92,7 @@ while run:
     # Update reward plot
     if episode % 1000 == 0:
         x_axis_min = episode
-    plt.axis([x_axis_min, episode, min(reward_arr), max(reward_arr)])
+    plt.axis([x_axis_min, max(episode,x_axis_min+5), min(reward_arr)-100, max(reward_arr)+100])
     line.set_xdata(np.arange(len(reward_arr)))
     line.set_ydata(reward_arr)
     fig.canvas.flush_events()

@@ -10,6 +10,7 @@ import random
 from collections import deque
 import pickle
 import math
+import time
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -96,7 +97,7 @@ class Actor(nn.Module):
 		x = F.relu(self.fc1(state))
 		x = F.relu(self.fc2(x))
 		x = F.relu(self.fc3(x))
-		action = F.tanh(self.fc4(x))
+		action = torch.tanh(self.fc4(x))
 
 		action = action * self.max_action
 
@@ -267,6 +268,8 @@ class Agent:
 		a2 = self.target_actor.forward(ns).detach()
 		next_val = torch.squeeze(self.target_critic.forward(ns, a2).detach())
 
+		tic = time.time()
+
 		y_expected = r + self.gamma*next_val
 
 		y_predicted = torch.squeeze(self.critic.forward(s, a))
@@ -276,6 +279,8 @@ class Agent:
 		loss_critic.backward()
 		self.optim_c.step()
 
+		toc1 = time.time()-tic
+
 		pred_a = self.actor.forward(s)
 		loss_actor = -1*torch.sum(self.critic.forward(s, pred_a))
 		self.optim_a.zero_grad()
@@ -284,3 +289,6 @@ class Agent:
 
 		self.updateTarget(self.target_actor, self.actor)
 		self.updateTarget(self.target_critic, self.critic)
+
+		toc = time.time()-tic
+		print(toc1,toc)

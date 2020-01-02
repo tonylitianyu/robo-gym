@@ -37,7 +37,7 @@ class QuadrotorEnv(gym.Env):
 
         #time
         self.t = 0
-        self.dt = 0.02
+        self.dt = 0.05
 
         #drone moment of inertia property
         self.motor_mass = 1;
@@ -58,8 +58,14 @@ class QuadrotorEnv(gym.Env):
         self.observation_space = spaces.Box(low=low, high=high, dtype=np.float32)
         self.action_space = spaces.Box(low=np.array([30,-200,-200,-200]),high=np.array([50,200,200,200]),dtype=np.float32)
 
-        self.initRender()
+    def setrender(self,renderflg):
+        self.renderflg = renderflg
+        if renderflg:
+            self.initRender()
 
+    def setdt(self,dt):
+        self.dt = dt
+        
     def step(self, action):
         self.input = action
         # X_goal = np.array([10,0,10,0,10,0,0,0,0,0,0,0])
@@ -93,18 +99,22 @@ class QuadrotorEnv(gym.Env):
 
     def reset(self):
         self.state = np.array([0,0,0,0,0,0,0,0,0,0,0,0],dtype=np.float32)
-        self.drone.pos = vector(0,0,0)
-        self.drone.axis = vector(1,0,0)
-        self.drone.up = vector(0,1,0)
-        self.xPointer.pos = self.drone.pos
-        self.yPointer.pos = self.drone.pos
-        self.zPointer.pos = self.drone.pos
+        
+        if self.renderflg:
+            self.drone.pos = vector(0,0,0)
+            self.drone.axis = vector(1,0,0)
+            self.drone.up = vector(0,1,0)
+            self.xPointer.pos = self.drone.pos
+            self.yPointer.pos = self.drone.pos
+            self.zPointer.pos = self.drone.pos
 
-        self.yPointer.axis = 7*self.drone.axis
-        self.zPointer.axis = 7*self.drone.up
-        xaxis = self.drone.axis.cross(self.zPointer.axis)
-        self.xPointer.axis = xaxis
+            self.yPointer.axis = 7*self.drone.axis
+            self.zPointer.axis = 7*self.drone.up
+            xaxis = self.drone.axis.cross(self.zPointer.axis)
+            self.xPointer.axis = xaxis
+
         return self.state
+    
     def initRender(self):
         self.canvas = canvas(width=1200, height=900, title='Quadrotor-3D')
         ground_y = -0.5
@@ -113,19 +123,19 @@ class QuadrotorEnv(gym.Env):
         wallB = box(canvas=self.canvas,pos=vector(0, ground_y, 0), size=vector(ground_width, thk, ground_width),  color = vector(0.9,0.9,0.9))
 
 
-        beam_length = self.beam_length
-        beam_radius = 0.4
-        beam1 = cylinder(pos=vector(-beam_length/2,0,-beam_length/2),axis=vector(beam_length,0,beam_length), radius=beam_radius,color=vector(0.3,0.3,0.3))
-        beam2 = cylinder(pos=vector(-beam_length/2,0,beam_length/2),axis=vector(beam_length,0,-beam_length), radius=beam_radius,color=vector(0.3,0.3,0.3))
+        l_beam = self.beam_length
+        r_beam = 0.4
+        beam1 = cylinder(pos=vector(-l_beam/2,0,-l_beam/2),axis=vector(l_beam,0,l_beam), radius=r_beam,color=vector(0.3,0.3,0.3))
+        beam2 = cylinder(pos=vector(-l_beam/2,0,l_beam/2),axis=vector(l_beam,0,-l_beam), radius=r_beam,color=vector(0.3,0.3,0.3))
 
-        propeller_height = 0.4
-        propeller_radius = 1.5
-        propeller_y = 0.4
-        propeller1 = cylinder(pos=vector(-beam_length/2,propeller_y,-beam_length/2),axis=vector(0,propeller_height,0), radius=propeller_radius,color=color.green)
-        propeller2 = cylinder(pos=vector(beam_length/2,propeller_y,-beam_length/2),axis=vector(0,propeller_height,0), radius=propeller_radius,color=color.red)
-        propeller3 = cylinder(pos=vector(-beam_length/2,propeller_y,beam_length/2),axis=vector(0,propeller_height,0), radius=propeller_radius,color=color.purple)
-        propeller4 = cylinder(pos=vector(beam_length/2,propeller_y,beam_length/2),axis=vector(0,propeller_height,0), radius=propeller_radius,color=color.cyan)
-        self.drone = compound([beam1, beam2, propeller1, propeller2, propeller3, propeller4],pos = vector(0,0,0),make_trail=False,retain=300)
+        h_prop = 0.4
+        r_prop = 1.5
+        prop_y = 0.4
+        prop1 = cylinder(pos=vector(-l_beam/2,prop_y,-l_beam/2),axis=vector(0,h_prop,0), radius=r_prop,color=color.green)
+        prop2 = cylinder(pos=vector(l_beam/2,prop_y,-l_beam/2),axis=vector(0,h_prop,0), radius=r_prop,color=color.red)
+        prop3 = cylinder(pos=vector(-l_beam/2,prop_y,l_beam/2),axis=vector(0,h_prop,0), radius=r_prop,color=color.purple)
+        prop4 = cylinder(pos=vector(l_beam/2,prop_y,l_beam/2),axis=vector(0,h_prop,0), radius=r_prop,color=color.cyan)
+        self.drone = compound([beam1, beam2, prop1, prop2, prop3, prop4],pos = vector(0,0,0),make_trail=False,retain=300)
 
         #yzx
 
@@ -145,7 +155,7 @@ class QuadrotorEnv(gym.Env):
         phi_   = self.state[6]
         theta_ = self.state[7]
         psi_   = self.state[8]
-        #print(self.state)
+        #print(self.state)        
         self.drone.pos = vector(self.state[2],self.state[4],self.state[0])
         self.drone.up = vector(0,1,0)#vector(-math.sin(phi_),math.cos(phi_)+math.cos(theta_),math.sin(theta_))
         self.drone.axis = vector(1,0,0)#vector(math.cos(psi_),(math.sin(phi_)*math.cos(psi_)-math.sin(theta_)*math.sin(psi_))/(math.cos(phi_)*math.cos(theta_)),math.sin(psi_))
@@ -163,9 +173,6 @@ class QuadrotorEnv(gym.Env):
         self.xPointer.axis = xaxis
 
         return True
-
-
-
 
     def _dsdt(self,t, s_augmented):
 
@@ -208,10 +215,6 @@ class QuadrotorEnv(gym.Env):
 
 
         return x1Dot, x2Dot, y1Dot, y2Dot, z1Dot, z2Dot, phiDot, thetaDot, psiDot, pDot, qDot, rDot, 0.,0.,0.,0.
-
-
-
-
 
     def LQRTest(self):
         x1 = sp.Symbol('x1')
@@ -284,9 +287,7 @@ class QuadrotorEnv(gym.Env):
         d,v = np.linalg.eig(A-B@K)
 
         return K
-
-
-
+    
     def bound(self,x,m,M):
         return min(max(x, m), M)
 
