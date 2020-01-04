@@ -1,0 +1,95 @@
+--------------------------------------------------------------------------------
+  Environment Summary
+--------------------------------------------------------------------------------
+PyTorch 1.1.0 compiled w/ CUDA 10.0
+Running with Python 3.6 and CUDA 10.0.130
+
+`pip3 list` truncated output:
+numpy==1.15.4
+--------------------------------------------------------------------------------
+  cProfile output
+--------------------------------------------------------------------------------
+         6768708 function calls (6630931 primitive calls) in 57.567 seconds
+
+   Ordered by: internal time
+   List reduced from 5378 to 15 due to restriction <15>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     5258    9.969    0.002    9.969    0.002 {method 'run_backward' of 'torch._C._EngineBase' objects}
+     5258    8.310    0.002   10.951    0.002 C:\Users\Wang Weizhuo\Documents\GitHub\robo-gym\Agent.py:223(updateTarget)
+    60467    4.472    0.000    4.472    0.000 {built-in method addmm}
+    55233    3.514    0.000    3.514    0.000 {built-in method relu}
+    94644    3.306    0.000    3.306    0.000 {method 'mul_' of 'torch._C._TensorBase' objects}
+    94644    2.965    0.000    2.965    0.000 {method 'add_' of 'torch._C._TensorBase' objects}
+    47322    2.422    0.000    2.422    0.000 {method 'sqrt' of 'torch._C._TensorBase' objects}
+    47340    2.145    0.000    2.145    0.000 {method 'copy_' of 'torch._C._TensorBase' objects}
+    11431    2.055    0.000    2.055    0.000 {built-in method __new__ of type object at 0x000000006539BC00}
+    47322    1.379    0.000    1.379    0.000 {method 'addcmul_' of 'torch._C._TensorBase' objects}
+    47322    1.325    0.000    1.325    0.000 {method 'addcdiv_' of 'torch._C._TensorBase' objects}
+    34185    1.060    0.000    1.060    0.000 {method 'to' of 'torch._C._TensorBase' objects}
+    47304    1.040    0.000    1.040    0.000 {method 'zero_' of 'torch._C._TensorBase' objects}
+    10548    0.961    0.000    0.961    0.000 {method 'matmul' of 'torch._C._TensorBase' objects}
+     5258    0.950    0.000   12.407    0.002 C:\Anaconda3\envs\racecar\lib\site-packages\torch\optim\adam.py:49(step)
+
+
+--------------------------------------------------------------------------------
+  autograd profiler output (CPU mode)
+--------------------------------------------------------------------------------
+        top 15 events sorted by cpu_time_total
+
+-----------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------
+Name               Self CPU total %   Self CPU total      CPU total %        CPU total     CPU time avg     CUDA total %       CUDA total    CUDA time avg  Number of Calls
+-----------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------
+to                          14.59%          6.129ms           14.59%          6.129ms          6.129ms              NaN          0.000us          0.000us                1
+addmm                       14.54%          6.109ms           14.54%          6.109ms          6.109ms              NaN          0.000us          0.000us                1
+empty                       14.25%          5.986ms           14.25%          5.986ms          5.986ms              NaN          0.000us          0.000us                1
+AddmmBackward               13.01%          5.465ms           13.01%          5.465ms          5.465ms              NaN          0.000us          0.000us                1
+addmm                       13.00%          5.460ms           13.00%          5.460ms          5.460ms              NaN          0.000us          0.000us                1
+zero_                        7.97%          3.348ms            7.97%          3.348ms          3.348ms              NaN          0.000us          0.000us                1
+mul                          3.72%          1.564ms            3.72%          1.564ms          1.564ms              NaN          0.000us          0.000us                1
+relu                         3.13%          1.316ms            3.13%          1.316ms          1.316ms              NaN          0.000us          0.000us                1
+mul                          2.83%          1.187ms            2.83%          1.187ms          1.187ms              NaN          0.000us          0.000us                1
+add                          2.63%          1.103ms            2.63%          1.103ms          1.103ms              NaN          0.000us          0.000us                1
+to                           2.49%          1.048ms            2.49%          1.048ms          1.048ms              NaN          0.000us          0.000us                1
+add_                         2.40%          1.008ms            2.40%          1.008ms          1.008ms              NaN          0.000us          0.000us                1
+to                           2.06%        865.316us            2.06%        865.316us        865.316us              NaN          0.000us          0.000us                1
+sum                          1.72%        720.950us            1.72%        720.950us        720.950us              NaN          0.000us          0.000us                1
+AddmmBackward                1.66%        698.156us            1.66%        698.156us        698.156us              NaN          0.000us          0.000us         0.000us          0.000us                1
+-----------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ------------
+ ---------------  ---------------  ---------------
+Self CPU time total: 42.008ms
+CUDA time total: 0.000us
+
+--------------------------------------------------------------------------------
+  autograd profiler output (CUDA mode)
+--------------------------------------------------------------------------------
+        top 15 events sorted by cpu_time_total
+
+        Because the autograd profiler uses the CUDA event API,
+        the CUDA time column reports approximately max(cuda_time, cpu_time).
+        Please ignore this output if your code does not use CUDA.
+
+-----------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ------------
+ ---------------  ---------------  ---------------
+Name               Self CPU total %   Self CPU total      CPU total %        CPU total     CPU time avg     CUDA total %       CUDA total    CUDA time avg  Number of C       CUDA total    CUDA time avg  Number of Calls
+-----------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ------------
+ ---------------  ---------------  ---------------
+relu                        30.27%         24.897ms           30.27%         24.897ms         24.897ms            0.44%        204.000us        204.000us       204.000us        204.000us                1
+add                         15.67%         12.883ms           15.67%         12.883ms         12.883ms           27.73%         12.924ms         12.924ms        12.924ms         12.924ms                1
+addcmul_                     7.77%          6.388ms            7.77%          6.388ms          6.388ms           13.85%          6.454ms          6.454ms         6.454ms          6.454ms                1
+AddmmBackward                6.89%          5.669ms            6.89%          5.669ms          5.669ms           12.15%          5.664ms          5.664ms         5.664ms          5.664ms                1
+addcmul_                     6.73%          5.532ms            6.73%          5.532ms          5.532ms           12.01%          5.596ms          5.596ms         5.596ms          5.596ms                1
+AddmmBackward                6.65%          5.472ms            6.65%          5.472ms          5.472ms            0.17%         78.000us         78.000us        78.000us         78.000us                1
+add                          4.10%          3.376ms            4.10%          3.376ms          3.376ms            0.50%        234.000us        234.000us       234.000us        234.000us                1
+TanhBackward                 3.99%          3.279ms            3.99%          3.279ms          3.279ms            4.28%          1.996ms          1.996ms         1.996ms          1.996ms                1
+tanh_backward                3.83%          3.152ms            3.83%          3.152ms          3.152ms            4.28%          1.996ms          1.996ms         1.996ms          1.996ms                1
+matmul                       2.75%          2.264ms            2.75%          2.264ms          2.264ms            4.85%          2.260ms          2.260ms         2.260ms          2.260ms                1
+mm                           2.66%          2.184ms            2.66%          2.184ms          2.184ms            4.67%          2.176ms          2.176ms         2.176ms          2.176ms                1
+cat                          2.62%          2.158ms            2.62%          2.158ms          2.158ms            4.78%          2.228ms          2.228ms         2.228ms          2.228ms                1
+mul                          2.17%          1.782ms            2.17%          1.782ms          1.782ms            0.90%        420.000us        420.000us       420.000us        420.000us                1
+sum                          2.02%          1.659ms            2.02%          1.659ms          1.659ms            5.01%          2.334ms          2.334ms         2.334ms          2.334ms                1
+mul                          1.88%          1.544ms            1.88%          1.544ms          1.544ms            4.39%          2.048ms          2.048ms         2.048ms          2.048ms                1
+-----------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ---------------  ------------
+ ---------------  ---------------  ---------------
+Self CPU time total: 82.240ms
+CUDA time total: 46.612ms

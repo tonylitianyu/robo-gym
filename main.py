@@ -50,7 +50,7 @@ plt.xlabel("Number of episodes");plt.ylabel("Reward");
 plt.grid();plt.ion();plt.show()
 
 # while run:
-while episode < 9900:
+while episode < 10:
     episode += 1
     curr_state = np.float32(env.reset())
 
@@ -104,7 +104,7 @@ while episode < 9900:
         memory.save()
 
     # Update reward plot
-    if episode % 10000 == 0:
+    if episode % 1000 == 0:
         x_axis_min = episode
     
     if episode % 1 == 0:

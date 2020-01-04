@@ -13,6 +13,7 @@ import math
 import time
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 
 def normalize_weight(size):
 	v = 1. / np.sqrt(size[0])
@@ -262,6 +263,7 @@ class Agent:
 
 
 	def train(self):
+		
 		s,a,r,ns = self.memory.sample(self.batch_size)
 
 		s = Variable(torch.from_numpy(s))
@@ -276,27 +278,49 @@ class Agent:
 		a2 = self.target_actor.forward(ns).detach()
 		next_val = torch.squeeze(self.target_critic.forward(ns, a2).detach())
 
-		# tic = time.time()
-
 		y_expected = r + self.gamma*next_val
 
+		tic = time.time() # 0.001
 		y_predicted = torch.squeeze(self.critic.forward(s, a))
+		toc1 = time.time()-tic
+
 		# compute critic loss, and update the critic
 		loss_critic = F.smooth_l1_loss(y_predicted, y_expected)
 		self.optim_c.zero_grad()
-		loss_critic.backward()
-		self.optim_c.step()
 
+		# tic = time.time() # 0.0015
+		loss_critic.backward()
+		# toc2 = time.time()-tic
+
+		# tic = time.time() # 0.003
+		self.optim_c.step()
+		# toc3 = time.time()-tic
+
+		# tic = time.time() # 0.001
+		pred_a = self.actor.forward(s)
 		# toc1 = time.time()-tic
 
-		pred_a = self.actor.forward(s)
+		# tic = time.time() # 0.001
 		loss_actor = -1*torch.sum(self.critic.forward(s, pred_a))
+		# toc2 = time.time()-tic
+
+		# tic = time.time() # 0.001
 		self.optim_a.zero_grad()
+		# toc3 = time.time()-tic
+
+		# tic = time.time() # 0.003
 		loss_actor.backward()
+		# toc4 = time.time()-tic
+
+		# tic = time.time() # 0.003
 		self.optim_a.step()
+		# toc5 = time.time()-tic
 
+		# tic = time.time() # 0.0025
 		self.updateTarget(self.target_actor, self.actor)
-		self.updateTarget(self.target_critic, self.critic)
+		# toc6 = time.time()-tic
 
-		# toc = time.time()-tic
-		# print(toc1,toc)
+		# tic = time.time() # 0.003
+		self.updateTarget(self.target_critic, self.critic)
+		# toc7 = time.time()-tic
+		# print("%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f " %(toc1,toc2,toc3,toc4,toc5,toc6,toc7))
