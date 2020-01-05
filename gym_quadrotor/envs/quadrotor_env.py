@@ -92,7 +92,8 @@ class QuadrotorEnv(gym.Env):
         reward = 0
         done = False
         #if in any of the direction, the drone is going out of bounds, terminate this episode
-        if max(np.absolute(self.state[[0,2,4]])) > 50:
+        if max(np.absolute(self.state[[0,2,4]])) > 150:
+            print(self.state[[0,2,4]])
             done = True
         return self.state,done
 

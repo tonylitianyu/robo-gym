@@ -5,6 +5,7 @@ import numpy as np
 import os
 import gc
 import time
+import math
 import matplotlib.pyplot as plt
 
 env = gym.make('quad-v0')
@@ -22,8 +23,8 @@ if start_new:
 
 #set RL agent property
 from Agent import Agent, Memory
-memory_size = 1000000
-single_episode_time = 300
+memory_size = 200*1500 # 200 for each episode, 400k = 2k episodes
+single_episode_time = 1000
 memory = Memory(memory_size)
 agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0], memory)
 #########
@@ -31,10 +32,10 @@ agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.ac
 
 # Vars Init
 run = True
-render = False
+render = True
 curr_reward = 0
 episode = 0
-reward_arr = []
+reward_arr = [0.0]
 x_axis_min = 0
 goodResult = False
 maxreward = -10000000
@@ -43,14 +44,14 @@ env.setrender(render)
 env.setdt(0.02)
 
 # Plot Init
-fig = plt.figure(figsize=(13,6))
+fig = plt.figure(figsize=(18,7))
 ax1 = fig.add_subplot(111)
 line, = ax1.plot(reward_arr)
-plt.xlabel("Number of episodes");plt.ylabel("Reward");
+plt.xlabel("Number of episodes");plt.ylabel("Reward")
 plt.grid();plt.ion();plt.show()
 
-# while run:
-while episode < 10:
+while run:
+# while episode < 101:
     episode += 1
     curr_state = np.float32(env.reset())
 
@@ -85,8 +86,12 @@ while episode < 10:
         else:
             memory.add(curr_state,action,reward,np.float32(n_state))
             curr_state = n_state
-            if (episode+1) % 1 == 0:
-                agent.train()
+        
+        if (r+1) % 10 == 0:
+            agent.train()
+
+    # if (episode+1) % 1 == 0:
+        
 
         # print('cycle')
 
@@ -108,9 +113,19 @@ while episode < 10:
         x_axis_min = episode
     
     if episode % 1 == 0:
-        plt.axis([x_axis_min, max(episode,x_axis_min+5), min(reward_arr)-100, max(reward_arr)+100])
-        line.set_xdata(np.arange(len(reward_arr)))
-        line.set_ydata(reward_arr)
+        sample_sz = 1000.0
+        samplestep = math.ceil(len(reward_arr)/sample_sz)
+        xdata = np.arange(1,len(reward_arr),samplestep)
+        ydata = reward_arr[1::samplestep]
+
+        plt.axis([1, len(reward_arr), min(ydata)-100, max(ydata)+100])
+        line.set_xdata(xdata)
+        line.set_ydata(ydata)
+
+        # plt.axis([x_axis_min, max(episode,x_axis_min+5), min(reward_arr)-100, max(reward_arr)+100])
+        # line.set_xdata(np.arange(len(reward_arr)),episode)
+        # line.set_ydata(reward_arr)
+        
         fig.canvas.flush_events()
 
     curr_reward = 0

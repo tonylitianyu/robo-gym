@@ -12,8 +12,8 @@ import pickle
 import math
 import time
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# device = torch.device("cpu")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 def normalize_weight(size):
 	v = 1. / np.sqrt(size[0])
@@ -104,13 +104,14 @@ class Actor(nn.Module):
 
 		return action
 
-#ornstein
+# ornstein
+# https://ipython-books.github.io/134-simulating-a-stochastic-differential-equation/
 class NoiseGenerator:
 	def __init__(self,action_size,max_action):
-		self.sigma = 0.2
-		self.mu = 0
-		self.tau = 1
-		self.dt = 0.15
+		self.sigma = 0.75 # std
+		self.mu = 0      # mean
+		self.tau = 1 	 # time const
+		self.dt = 0.02   # time step
 		if os.path.exists('model/noise.p'):
 			self.x = pickle.load(open('model/noise.p','rb'))
 		else:
@@ -118,7 +119,7 @@ class NoiseGenerator:
 		self.max_action = max_action
 
 	def randomNoise(self):
-		self.x += self.dt * (-(self.x - self.mu) / self.tau) + self.sigma*np.sqrt(2./self.tau)*np.sqrt(self.dt)*np.random.randn(len(self.x))
+		self.x += self.dt * ((self.mu - self.x) / self.tau) + self.sigma*np.sqrt(2./self.tau)*np.sqrt(self.dt)*np.random.randn(len(self.x))
 		return self.x*self.max_action
 		#*np.sqrt(2./self.tau)*np.sqrt(self.dt)
 
@@ -134,6 +135,7 @@ class Memory:
 
 		batch = []
 		count = min(count, len(self.memory_list))
+		# print(len(self.memory_list))
 		batch = random.sample(self.memory_list, count)
 
 		s_arr = np.float32([arr[0] for arr in batch])
@@ -159,8 +161,8 @@ class Agent:
 		self.state_size = state_size
 		self.action_size = action_size
 		self.max_action = max_action
-		self.gamma = 0.99
-		self.batch_size = 128
+		self.gamma = 0.90
+		self.batch_size = 1024
 		self.learning_rate = 0.001
 
 		self.noiseMachine = NoiseGenerator(self.action_size,self.max_action)
@@ -238,25 +240,33 @@ class Agent:
 		reward = 0
 		#tranable
 		agent_pos = np.array([x,y,z],dtype=float)
-		des_pos = np.array([0,0,0],dtype=float)
-		distance = np.linalg.norm(agent_pos-des_pos)
+		des_pos   = np.array([0,0,0],dtype=float)
+		distance  = np.linalg.norm(agent_pos-des_pos)
 
-		# if distance > 1:
-		# 	reward = -distance*10
+		weight_mat = np.array([-3,-3,-10,-0.2,-0.2,-0.2],dtype=float)
+		xdes 	   = np.array([0,0,0,0,0,0],dtype=float)
+		xcurr 	   = np.array([x,y,z,phi_,theta_,psi_],dtype=float)
+		reward     = np.inner(weight_mat,abs(xdes-xcurr))
+		reward += 20.0/min(max(0.00,distance),1)
+
+		# if distance < 2:
+		# 	reward += 30.0/distance
 		# else:
+			# reward = -distance*10
 		# 	reward = 30.0/distance
+		
 
-		if distance > 10:
-			reward = -100
-		elif distance < 10 and distance > 5:
-			reward = -50
-		elif distance < 5 and distance > 1:
-			reward = -20
-			reward -= abs(phi_*50)+abs(theta_*50)+abs(psi_*50)
+		# if distance > 10:
+		# 	reward = -100
+		# elif distance < 10 and distance > 5:
+		# 	reward = -50
+		# elif distance < 5 and distance > 1:
+		# 	reward = -20
+		# 	reward -= abs(phi_*50)+abs(theta_*50)+abs(psi_*50)
 
-		elif distance < 1:
-			reward = 200
-			reward -= abs(phi_*150)+abs(theta_*150)+abs(psi_*150)
+		# elif distance < 1:
+		# 	reward = 200
+		# 	reward -= abs(phi_*150)+abs(theta_*150)+abs(psi_*150)
 
 		return reward
 
@@ -266,6 +276,8 @@ class Agent:
 		
 		s,a,r,ns = self.memory.sample(self.batch_size)
 
+		# print(s.shape)
+		# print('ffffffffffffffffffffffffffffffffffffffffff')
 		s = Variable(torch.from_numpy(s))
 		s = s.to(device)
 		a = Variable(torch.from_numpy(a))
@@ -280,9 +292,9 @@ class Agent:
 
 		y_expected = r + self.gamma*next_val
 
-		tic = time.time() # 0.001
+		# tic = time.time() # 0.001
 		y_predicted = torch.squeeze(self.critic.forward(s, a))
-		toc1 = time.time()-tic
+		# toc1 = time.time()-tic
 
 		# compute critic loss, and update the critic
 		loss_critic = F.smooth_l1_loss(y_predicted, y_expected)
