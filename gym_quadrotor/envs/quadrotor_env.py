@@ -76,6 +76,7 @@ class QuadrotorEnv(gym.Env):
         # self.input[0] = self.limitTorque(self.input[0],'t')
         # self.input[2] = self.limitTorque(self.input[2],'x')
 
+        self.input[0] = self.input[0] + 20
         state_augmented = np.append(self.state, self.input)
         sol = scipy.integrate.solve_ivp(self._dsdt, [0, self.dt], state_augmented)
 
@@ -92,15 +93,15 @@ class QuadrotorEnv(gym.Env):
         reward = 0
         done = False
         #if in any of the direction, the drone is going out of bounds, terminate this episode
-        if max(np.absolute(self.state[[0,2,4]])) > 150:
+        if max(np.absolute(self.state[[0,2,4]])) > 50:
             print(self.state[[0,2,4]])
             done = True
         return self.state,done
 
 
     def reset(self):
-        self.state = np.array([0,0,0,0,0,0,0,0,0,0,0,0],dtype=np.float32)
-        
+        # self.state = np.array([0,0,0,0,0,0,0,0,0,0,0,0],dtype=np.float32)
+        self.state = np.array([-5+10*random(),0,-5+10*random(),0,0+20*random(),0,0,0,0,0,0,0],dtype=np.float32)
         if self.renderflg:
             self.drone.pos = vector(0,0,0)
             self.drone.axis = vector(1,0,0)

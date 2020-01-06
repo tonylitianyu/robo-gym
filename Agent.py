@@ -108,7 +108,7 @@ class Actor(nn.Module):
 # https://ipython-books.github.io/134-simulating-a-stochastic-differential-equation/
 class NoiseGenerator:
 	def __init__(self,action_size,max_action):
-		self.sigma = 0.75 # std
+		self.sigma = 0.55 # std
 		self.mu = 0      # mean
 		self.tau = 1 	 # time const
 		self.dt = 0.02   # time step
@@ -161,16 +161,17 @@ class Agent:
 		self.state_size = state_size
 		self.action_size = action_size
 		self.max_action = max_action
-		self.gamma = 0.90
-		self.batch_size = 1024
-		self.learning_rate = 0.001
+		self.gamma = 0.99
+		self.batch_size = 128
+		self.learning_rate_c = 0.001
+		self.learning_rate_a = 0.0001
 
 		self.noiseMachine = NoiseGenerator(self.action_size,self.max_action)
 		self.memory = memory
 
 		self.loadAllNetwork()
-		self.optim_a = torch.optim.Adam(self.actor.parameters(),self.learning_rate)
-		self.optim_c = torch.optim.Adam(self.critic.parameters(),self.learning_rate)
+		self.optim_a = torch.optim.Adam(self.actor.parameters(),self.learning_rate_a)
+		self.optim_c = torch.optim.Adam(self.critic.parameters(),self.learning_rate_c)
 		self.copy(self.target_actor, self.actor)
 		self.copy(self.target_critic, self.critic)
 
@@ -223,14 +224,14 @@ class Agent:
 		for target_param, source_param in zip(target.parameters(), source.parameters()):
 				target_param.data.copy_(source_param.data)
 
-	def updateTarget(self,target, source):
+	def updateTarget(self,target, source, learning_rate):
 		#update target network from source
 		for target_param, source_param in zip(target.parameters(), source.parameters()):
 			target_param.data.copy_(
-				target_param.data * (1.0 - self.learning_rate) + source_param.data * self.learning_rate
+				target_param.data * (1.0 - learning_rate) + source_param.data * learning_rate
 			)
 
-	def rewardFunc(self,state):
+	def rewardFunc(self,state,action):
 		x = state[0]
 		y = state[2]
 		z = state[4]
@@ -238,17 +239,33 @@ class Agent:
 		theta_ = state[7]
 		psi_   = state[8]
 		reward = 0
-		#tranable
-		agent_pos = np.array([x,y,z],dtype=float)
-		des_pos   = np.array([0,0,0],dtype=float)
-		distance  = np.linalg.norm(agent_pos-des_pos)
 
-		weight_mat = np.array([-3,-3,-10,-0.2,-0.2,-0.2],dtype=float)
-		xdes 	   = np.array([0,0,0,0,0,0],dtype=float)
-		xcurr 	   = np.array([x,y,z,phi_,theta_,psi_],dtype=float)
-		reward     = np.inner(weight_mat,abs(xdes-xcurr))
-		reward += 20.0/min(max(0.00,distance),1)
+		# You Nei Weier Reward
+		distance = math.sqrt((x**2)+(y**2)+(z**2))
+		o_error = abs(phi_)+abs(theta_)+abs(psi_)
+		if distance > 3:
+			reward -= (distance + 100*o_error)
 
+		else:
+			reward -= (0.01*distance + 10*o_error)
+
+		# if distance < 1:
+		# 	reward = 2000
+
+		# Ken reward
+		# agent_pos = np.array([x,y,z],dtype=float)
+		# des_pos   = np.array([0,0,0],dtype=float)
+		# distance  = np.linalg.norm(agent_pos-des_pos)
+
+		# weight_mat = np.array([-3,-3,-10,-0.2,-0.2,-0.2],dtype=float)
+		# xdes 	   = np.array([0,0,0,0,0,0],dtype=float)
+		# xcurr 	   = np.array([x,y,z,phi_,theta_,psi_],dtype=float)
+		# reward     = np.inner(weight_mat,abs(xdes-xcurr))
+		if distance < 10:
+			reward = reward - 0.5*min(max(x,-10),10)**2 + 30
+			reward = reward - 0.5*min(max(y,-10),10)**2 + 30
+
+		reward -= abs(np.sum(action))
 		# if distance < 2:
 		# 	reward += 30.0/distance
 		# else:
@@ -287,6 +304,7 @@ class Agent:
 		ns = Variable(torch.from_numpy(ns))
 		ns = ns.to(device)
 
+
 		a2 = self.target_actor.forward(ns).detach()
 		next_val = torch.squeeze(self.target_critic.forward(ns, a2).detach())
 
@@ -305,6 +323,7 @@ class Agent:
 		# toc2 = time.time()-tic
 
 		# tic = time.time() # 0.003
+		torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
 		self.optim_c.step()
 		# toc3 = time.time()-tic
 
@@ -325,14 +344,15 @@ class Agent:
 		# toc4 = time.time()-tic
 
 		# tic = time.time() # 0.003
+		torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
 		self.optim_a.step()
 		# toc5 = time.time()-tic
 
 		# tic = time.time() # 0.0025
-		self.updateTarget(self.target_actor, self.actor)
+		self.updateTarget(self.target_actor, self.actor, self.learning_rate_a)
 		# toc6 = time.time()-tic
 
 		# tic = time.time() # 0.003
-		self.updateTarget(self.target_critic, self.critic)
+		self.updateTarget(self.target_critic, self.critic, self.learning_rate_c)
 		# toc7 = time.time()-tic
 		# print("%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f " %(toc1,toc2,toc3,toc4,toc5,toc6,toc7))
