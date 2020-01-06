@@ -163,8 +163,8 @@ class Agent:
 		self.max_action = max_action
 		self.gamma = 0.99
 		self.batch_size = 128
-		self.learning_rate_c = 0.001
 		self.learning_rate_a = 0.0001
+		self.learning_rate_c = 10*self.learning_rate_a
 
 		self.noiseMachine = NoiseGenerator(self.action_size,self.max_action)
 		self.memory = memory
@@ -265,7 +265,7 @@ class Agent:
 			reward = reward - 0.5*min(max(x,-10),10)**2 + 30
 			reward = reward - 0.5*min(max(y,-10),10)**2 + 30
 
-		reward -= abs(np.sum(action))
+		reward -= abs(np.sum(action[1:]))*0.5
 		# if distance < 2:
 		# 	reward += 30.0/distance
 		# else:

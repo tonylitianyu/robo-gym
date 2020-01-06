@@ -24,7 +24,7 @@ if start_new:
 #set RL agent property
 from Agent import Agent, Memory
 memory_size = 1000000 # 200 for each episode, 400k = 2k episodes
-single_episode_time = 500
+single_episode_time = 200
 memory = Memory(memory_size)
 agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0], memory)
 #########
@@ -35,7 +35,7 @@ run = True
 render = True
 curr_reward = 0
 episode = 0
-reward_arr = [0.0,0.0]
+reward_arr = [0.0]
 x_axis_min = 0
 goodResult = False
 maxreward = -10000000
@@ -50,12 +50,14 @@ line, = ax1.plot(reward_arr)
 plt.xlabel("Number of episodes");plt.ylabel("Step Average Reward")
 plt.grid();plt.ion();plt.show()
 
-while run:
-# while episode < 101:
+# while run:
+while episode < 9990:
     episode += 1
     curr_state = np.float32(env.reset())
 
     #run each episode
+    agent.learning_rate_a = 0.0001 + episode/10*0.0001
+    print("Current Episode:%4.0d Learning Actor Rate: %7.5f " %(episode,agent.learning_rate_a))
 
     for r in range(single_episode_time):
         
@@ -65,7 +67,6 @@ while run:
 
         if goodResult == True: #stop learning
             agent.learning_rate_a = 0.0
-            agent.learning_rate_c = 0.0
             action = agent.use_action(curr_state)
         else:
             #try the model each 10 episodes
@@ -111,6 +112,8 @@ while run:
     # Update reward plot
     if episode % 1000 == 0:
         x_axis_min = episode
+    if episode % 50 == 0:
+        plt.savefig('overnight_res.png')
     
     if episode % 1 == 0:
         N = len(reward_arr)
@@ -119,7 +122,7 @@ while run:
         xdata = np.arange(1,N,samplestep)
         ydata = reward_arr[1::samplestep]
 
-        plt.axis([1, N, min(ydata)-100, max(ydata)+100])
+        plt.axis([1, N, min(ydata)-10, max(ydata)+10])
         line.set_xdata(xdata)
         line.set_ydata(ydata)
 
