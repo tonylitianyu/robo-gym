@@ -69,7 +69,7 @@ class QuadrotorEnv(gym.Env):
         # self.input = -self.LQRTest()@error
         # self.input[0] = self.limitTorque(self.input[0],'t')
         # self.input[2] = self.limitTorque(self.input[2],'x')
-
+        self.input[3] = self.input[3] + 35
         state_augmented = np.append(self.state, self.input)
         sol = scipy.integrate.solve_ivp(self._dsdt, [0, self.dt], state_augmented)
 
@@ -92,7 +92,7 @@ class QuadrotorEnv(gym.Env):
 
 
     def reset(self):
-        self.state = np.array([0,0,0,0,0,0,0,0,0,0,0,0],dtype=np.float32)
+        self.state = np.array([-5+10*random(),0,-5+10*random(),0,0+20*random(),0,0,0,0,0,0,0],dtype=np.float32)
         self.drone.pos = vector(0,0,0)
         self.drone.axis = vector(1,0,0)
         self.drone.up = vector(0,1,0)

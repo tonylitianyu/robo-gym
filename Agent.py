@@ -226,6 +226,7 @@ class Agent:
 			)
 
 	def rewardFunc(self,state):
+		done = False
 		x = state[0]
 		y = state[2]
 		z = state[4]
@@ -235,20 +236,21 @@ class Agent:
 		reward = 0
 		#tranable
 		distance = math.sqrt((x**2)+(y**2)+(z**2))
+		o_error = abs(phi_)+abs(theta_)+abs(psi_)
+		if distance > 3:
+			reward -= (distance + 100*o_error)
 
-		if distance > 10:
-			reward = -100
-		elif distance < 10 and distance > 5:
-			reward = -50
-		elif distance < 5 and distance > 1:
-			reward = -20
-			reward -= abs(phi_*50)+abs(theta_*50)+abs(psi_*50)
+		else:
+			reward -= (0.01*distance + 10*o_error)
 
-		elif distance < 1:
-			reward = 200
-			reward -= abs(phi_*150)+abs(theta_*150)+abs(psi_*150)
+		if distance < 1:
+			reward = 2000
+			#reward -= abs(phi_*150)+abs(theta_*150)+abs(psi_*150)
 
-		return reward
+
+
+
+		return reward,done
 
 
 
