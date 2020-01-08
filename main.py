@@ -44,7 +44,7 @@ env.setrender(render)
 env.setdt(0.02)
 
 # Plot Init
-fig = plt.figure(figsize=(18,7))
+fig = plt.figure(figsize=(18,5))
 ax1 = fig.add_subplot(111)
 line, = ax1.plot(reward_arr)
 plt.xlabel("Number of episodes");plt.ylabel("Step Average Reward")
@@ -56,8 +56,7 @@ while episode < 9990:
     curr_state = np.float32(env.reset())
 
     #run each episode
-    agent.learning_rate_a = 0.0001 + episode/10*0.0001
-    print("Current Episode:%4.0d Learning Actor Rate: %7.5f " %(episode,agent.learning_rate_a))
+    agent.learning_rate_a = 0.013
 
     for r in range(single_episode_time):
         
@@ -112,9 +111,10 @@ while episode < 9990:
     # Update reward plot
     if episode % 1000 == 0:
         x_axis_min = episode
-    if episode % 50 == 0:
-        plt.savefig('overnight_res.png')
-    
+
+    # if episode % 50 == 0:
+    #     plt.savefig('overnight_res.png')
+    # print("Current Episode:%4.0d Learning Actor Rate: %7.5f " %(episode,agent.learning_rate_a))
     if episode % 1 == 0:
         N = len(reward_arr)
         sample_sz = 1000.0
@@ -131,6 +131,8 @@ while episode < 9990:
         # line.set_ydata(reward_arr)
         
         fig.canvas.flush_events()
+        if os.name == 'posix':
+            plt.pause(0.000001) # to make the plot visiable on OSX
 
     curr_reward = 0
     gc.collect()
