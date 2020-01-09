@@ -1,4 +1,4 @@
 Ken TODO:
 1. A2C A3C ...
-2. Check gamma equation against CS 294 UCB lec 6
-3. Learning rate schedulor
+2. Learning rate schedulor
+3. Reset noise?

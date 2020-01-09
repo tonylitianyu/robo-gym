@@ -12,9 +12,9 @@ env = gym.make('quad-v0')
 
 start_new = True
 if start_new:
-    if os.path.exists("model/noise.p"):
+    if os.path.exists("model/memory_list.p"):
         os.remove("model/memory_list.p")
-        os.remove("model/noise.p")
+		# os.remove("model/noise.p")
         os.remove("model/quadrotor_actor.pkl")
         os.remove("model/quadrotor_critic.pkl")
         os.remove("model/quadrotor_target_actor.pkl")
@@ -24,7 +24,7 @@ if start_new:
 #set RL agent property
 from Agent import Agent, Memory
 memory_size = 1000000 # 200 for each episode, 400k = 2k episodes
-single_episode_time = 200
+single_episode_time = 300
 memory = Memory(memory_size)
 agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0], memory)
 #########
@@ -54,10 +54,14 @@ plt.grid();plt.ion();plt.show()
 while episode < 9990:
     episode += 1
     curr_state = np.float32(env.reset())
+    agent.noiseMachine.resetNoise()
+
+	# Set Learning rate
+    lr_min = 0.00001
+    lr_max = 0.0002
+    agent.learning_rate_a = lr_min + 0.5*(lr_max-lr_min)*(1+math.cos(episode/20*math.pi))
 
     #run each episode
-    agent.learning_rate_a = 0.013
-
     for r in range(single_episode_time):
         
         if render:
@@ -105,6 +109,7 @@ while episode < 9990:
     # Save model every 50 episode
     # isbest = curr_reward > maxreward
     if episode % 50 == 0:
+        # agent.learning_rate_a *= 0.9
         agent.saveNetwork(True)
         memory.save()
 

@@ -76,7 +76,7 @@ class QuadrotorEnv(gym.Env):
         # self.input[0] = self.limitTorque(self.input[0],'t')
         # self.input[2] = self.limitTorque(self.input[2],'x')
 
-        self.input[0] = self.input[0] + 20
+        # self.input[0] = self.input[0] + 20
         state_augmented = np.append(self.state, self.input)
         sol = scipy.integrate.solve_ivp(self._dsdt, [0, self.dt], state_augmented)
 

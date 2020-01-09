@@ -11,6 +11,7 @@ from collections import deque
 import pickle
 import math
 import time
+import copy
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 device = torch.device("cpu")
@@ -108,10 +109,11 @@ class Actor(nn.Module):
 # https://ipython-books.github.io/134-simulating-a-stochastic-differential-equation/
 class NoiseGenerator:
 	def __init__(self,action_size,max_action):
-		self.sigma = 0.55 # std
+		self.sigma = 0.75 # std
 		self.mu = 0      # mean
 		self.tau = 1 	 # time const
 		self.dt = 0.02   # time step
+		self.resetNoise()
 		if os.path.exists('model/noise.p'):
 			self.x = pickle.load(open('model/noise.p','rb'))
 		else:
@@ -122,6 +124,30 @@ class NoiseGenerator:
 		self.x += self.dt * ((self.mu - self.x) / self.tau) + self.sigma*np.sqrt(2./self.tau)*np.sqrt(self.dt)*np.random.randn(len(self.x))
 		return self.x*self.max_action
 		#*np.sqrt(2./self.tau)*np.sqrt(self.dt)
+
+	def resetNoise(self):
+		pass
+
+class OUNoise:
+	"""Ornstein-Uhlenbeck process."""
+
+	def __init__(self, action_size, mu, theta, sigma,max_action):
+		"""Initialize parameters and noise process."""
+		self.mu = mu * np.ones(action_size)
+		self.theta = theta
+		self.sigma = sigma
+		self.resetNoise()
+
+	def resetNoise(self):
+		"""Reset the internal state (= noise) to mean (mu)."""
+		self.state = copy.copy(self.mu)
+
+	def randomNoise(self):
+		"""Update internal state and return it as a noise sample."""
+		x = self.state
+		dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
+		self.state = x + dx
+		return self.state
 
 class Memory:
 	def __init__(self, size):
@@ -167,6 +193,7 @@ class Agent:
 		self.learning_rate_c = 10*self.learning_rate_a
 
 		self.noiseMachine = NoiseGenerator(self.action_size,self.max_action)
+		self.noiseMachine = OUNoise(self.action_size,0,0.15,0.2,self.max_action)
 		self.memory = memory
 
 		self.loadAllNetwork()
@@ -206,7 +233,7 @@ class Agent:
 			torch.save(self.target_actor, 'model/quadrotor_target_actor.pkl')
 			torch.save(self.critic, 'model/quadrotor_critic.pkl')
 			torch.save(self.target_critic, 'model/quadrotor_target_critic.pkl')
-			pickle.dump(self.noiseMachine.x, open('model/noise.p','wb'))
+			# pickle.dump(self.noiseMachine.x, open('model/noise.p','wb'))
 
 
 	def use_action(self,state):
