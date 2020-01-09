@@ -1,4 +1,3 @@
 Ken TODO:
 1. A2C A3C ...
-2. Learning rate schedulor
-3. Reset noise?
+2. Performance issues (CUDA vs CPU) (Parallel using CPU)

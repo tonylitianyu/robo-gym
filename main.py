@@ -56,7 +56,7 @@ while episode < 9990:
     curr_state = np.float32(env.reset())
     agent.noiseMachine.resetNoise()
 
-	# Set Learning rate
+	# Set Learning rate by cosine annealing
     lr_min = 0.00001
     lr_max = 0.0002
     agent.learning_rate_a = lr_min + 0.5*(lr_max-lr_min)*(1+math.cos(episode/20*math.pi))
