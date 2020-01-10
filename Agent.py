@@ -20,6 +20,10 @@ def normalize_weight(size):
 	v = 1. / np.sqrt(size[0])
 	return torch.Tensor(size).uniform_(-v, v)
 
+def  gelu_approx(x):
+	return torch.sigmoid(1.702*x)*x
+
+
 class Critic(nn.Module):
 
 	def __init__(self, state_dim, action_dim):
@@ -55,12 +59,12 @@ class Critic(nn.Module):
 	def forward(self, state, action):
 		state = state.to(device)
 		action = action.to(device)
-		s1 = F.relu(self.fcs1(state))
-		s2 = F.relu(self.fcs2(s1))
-		a1 = F.relu(self.fca1(action))
+		s1 =  F.relu(self.fcs1(state))
+		s2 =  F.relu(self.fcs2(s1))
+		a1 =  F.relu(self.fca1(action))
 		x = torch.cat((s2,a1),dim=1)
 
-		x = F.relu(self.fc2(x))
+		x =  F.relu(self.fc2(x))
 		x = self.fc3(x)
 
 		return x
@@ -96,9 +100,9 @@ class Actor(nn.Module):
 
 	def forward(self, state):
 		state = state.to(device)
-		x = F.relu(self.fc1(state))
-		x = F.relu(self.fc2(x))
-		x = F.relu(self.fc3(x))
+		x =  F.relu(self.fc1(state))
+		x =  F.relu(self.fc2(x))
+		x =  F.relu(self.fc3(x))
 		action = torch.tanh(self.fc4(x))
 
 		action = action * self.max_action
@@ -316,12 +320,10 @@ class Agent:
 
 
 
-	def train(self):
+	def train(self,train_all):
 		
 		s,a,r,ns = self.memory.sample(self.batch_size)
 
-		# print(s.shape)
-		# print('ffffffffffffffffffffffffffffffffffffffffff')
 		s = Variable(torch.from_numpy(s))
 		s = s.to(device)
 		a = Variable(torch.from_numpy(a))
@@ -336,50 +338,26 @@ class Agent:
 		next_val = torch.squeeze(self.target_critic.forward(ns, a2).detach())
 
 		y_expected = r + self.gamma*next_val
+		y_predicted = torch.squeeze(self.critic.forward(s, a)) # 0.001
 
-		# tic = time.time() # 0.001
-		y_predicted = torch.squeeze(self.critic.forward(s, a))
-		# toc1 = time.time()-tic
-
-		# compute critic loss, and update the critic
+		# compute critic loss, update the critic
 		loss_critic = F.smooth_l1_loss(y_predicted, y_expected)
 		self.optim_c.zero_grad()
-
-		# tic = time.time() # 0.0015
-		loss_critic.backward()
-		# toc2 = time.time()-tic
-
-		# tic = time.time() # 0.003
+		loss_critic.backward() # 0.0015
 		torch.nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
-		self.optim_c.step()
-		# toc3 = time.time()-tic
+		self.optim_c.step()# 0.003
 
-		# tic = time.time() # 0.001
-		pred_a = self.actor.forward(s)
-		# toc1 = time.time()-tic
+		# Addressing Function Approximation Error in Actor-Critic Algorithms (Fujimoto et al. ‘18)
+		if train_all:
+			# Actor loss, update actor
+			pred_a = self.actor.forward(s) # 0.001
+			loss_actor = -1*torch.sum(self.critic.forward(s, pred_a)) # 0.001
+			self.optim_a.zero_grad() # 0.001
+			loss_actor.backward() # 0.003
+			torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
+			self.optim_a.step() # 0.003
 
-		# tic = time.time() # 0.001
-		loss_actor = -1*torch.sum(self.critic.forward(s, pred_a))
-		# toc2 = time.time()-tic
-
-		# tic = time.time() # 0.001
-		self.optim_a.zero_grad()
-		# toc3 = time.time()-tic
-
-		# tic = time.time() # 0.003
-		loss_actor.backward()
-		# toc4 = time.time()-tic
-
-		# tic = time.time() # 0.003
-		torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
-		self.optim_a.step()
-		# toc5 = time.time()-tic
-
-		# tic = time.time() # 0.0025
-		self.updateTarget(self.target_actor, self.actor, self.learning_rate_a)
-		# toc6 = time.time()-tic
-
-		# tic = time.time() # 0.003
-		self.updateTarget(self.target_critic, self.critic, self.learning_rate_c)
-		# toc7 = time.time()-tic
-		# print("%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f " %(toc1,toc2,toc3,toc4,toc5,toc6,toc7))
+			# Update target networks
+			self.updateTarget(self.target_actor, self.actor, self.learning_rate_a) # 0.0025
+			self.updateTarget(self.target_critic, self.critic, self.learning_rate_c) # 0.0025
+			# print("%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f %5.3f " %(toc1,toc2,toc3,toc4,toc5,toc6,toc7))

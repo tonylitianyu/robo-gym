@@ -51,15 +51,16 @@ plt.xlabel("Number of episodes");plt.ylabel("Step Average Reward")
 plt.grid();plt.ion();plt.show()
 
 # while run:
-while episode < 9990:
+while episode < 3000:
     episode += 1
     curr_state = np.float32(env.reset())
     agent.noiseMachine.resetNoise()
 
 	# Set Learning rate by cosine annealing
     lr_min = 0.00001
-    lr_max = 0.0002
-    agent.learning_rate_a = lr_min + 0.5*(lr_max-lr_min)*(1+math.cos(episode/20*math.pi))
+    lr_max = 0.00013
+    agent.learning_rate_a = lr_min + 0.5*(lr_max-lr_min)*(1+math.cos((episode%25)/25*math.pi))
+    agent.learning_rate_c = 0.001 # 10*agent.learning_rate_a
 
     #run each episode
     for r in range(single_episode_time):
@@ -91,8 +92,7 @@ while episode < 9990:
             memory.add(curr_state,action,reward,np.float32(n_state))
             curr_state = n_state
         
-        if (r+1) % 1 == 0:
-            agent.train()
+        agent.train(((r+1) % 2 == 0))
 
     # if (episode+1) % 1 == 0:
         
@@ -117,8 +117,8 @@ while episode < 9990:
     if episode % 1000 == 0:
         x_axis_min = episode
 
-    # if episode % 50 == 0:
-    #     plt.savefig('overnight_res.png')
+    if episode % 500 == 0:
+        plt.savefig('overnight_res.png')
     # print("Current Episode:%4.0d Learning Actor Rate: %7.5f " %(episode,agent.learning_rate_a))
     if episode % 1 == 0:
         N = len(reward_arr)

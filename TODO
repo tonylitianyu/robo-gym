@@ -1,3 +1,10 @@
-Ken TODO:
-1. A2C A3C ...
-2. Performance issues (CUDA vs CPU) (Parallel using CPU)
+====Ken TODO====
+1. Performance issues (CUDA vs CPU) (Parallel using CPU)
+2. Add in GeLU activation function and see what it can do.
+3. (Maybe) log reward functions
+4. Tune the memory size parameter
+5. More random initial condition
+
+====Future plans====
+1. Path following for drone
+2. Convert to Car
