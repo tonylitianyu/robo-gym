@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 env = gym.make('quad-v0')
 
-start_new = True
+start_new = False
 if start_new:
     if os.path.exists("model/memory_list.p"):
         os.remove("model/memory_list.p")
@@ -23,7 +23,7 @@ if start_new:
 
 #set RL agent property
 from Agent import Agent, Memory
-memory_size = 1000000 # 200 for each episode, 400k = 2k episodes
+memory_size = 100000 # 200 for each episode, 400k = 2k episodes
 single_episode_time = 300
 memory = Memory(memory_size)
 agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0], memory)
@@ -58,9 +58,9 @@ while episode < 3000:
 
 	# Set Learning rate by cosine annealing
     lr_min = 0.00001
-    lr_max = 0.00013
+    lr_max = 0.0001
     agent.learning_rate_a = lr_min + 0.5*(lr_max-lr_min)*(1+math.cos((episode%25)/25*math.pi))
-    agent.learning_rate_c = 0.001 # 10*agent.learning_rate_a
+    agent.learning_rate_c = 10*agent.learning_rate_a
 
     #run each episode
     for r in range(single_episode_time):
@@ -117,7 +117,7 @@ while episode < 3000:
     if episode % 1000 == 0:
         x_axis_min = episode
 
-    if episode % 500 == 0:
+    if episode % 250 == 0:
         plt.savefig('overnight_res.png')
     # print("Current Episode:%4.0d Learning Actor Rate: %7.5f " %(episode,agent.learning_rate_a))
     if episode % 1 == 0:
