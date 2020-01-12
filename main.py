@@ -7,10 +7,17 @@ import gc
 import time
 import math
 import matplotlib.pyplot as plt
+import torch
 
 env = gym.make('quad-v0')
+gpuid = -1
+if gpuid >= 0:
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+else:
+    device = torch.device("cpu")
+print(device)
 
-start_new = False
+start_new = True
 if start_new:
     if os.path.exists("model/memory_list.p"):
         os.remove("model/memory_list.p")
@@ -26,7 +33,8 @@ from Agent import Agent, Memory
 memory_size = 100000 # 200 for each episode, 400k = 2k episodes
 single_episode_time = 300
 memory = Memory(memory_size)
-agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0], memory)
+agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0],\
+               memory, gpuid)
 #########
 
 
@@ -69,6 +77,7 @@ while episode < 3000:
             env.render()
         curr_state = np.float32(curr_state)
 
+        
         if goodResult == True: #stop learning
             agent.learning_rate_a = 0.0
             action = agent.use_action(curr_state)
@@ -91,7 +100,7 @@ while episode < 3000:
         else:
             memory.add(curr_state,action,reward,np.float32(n_state))
             curr_state = n_state
-        
+
         agent.train(((r+1) % 2 == 0))
 
     # if (episode+1) % 1 == 0:

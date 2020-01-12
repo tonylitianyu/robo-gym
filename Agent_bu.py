@@ -23,9 +23,10 @@ def  gelu_approx(x):
 
 class Critic(nn.Module):
 
-	def __init__(self, state_dim, action_dim):
+	def __init__(self, state_dim, action_dim, device):
 
 		super(Critic, self).__init__()
+		self.device = device
 
 		self.state_dim = state_dim
 		self.action_dim = action_dim
@@ -46,8 +47,16 @@ class Critic(nn.Module):
 		self.fc3 = nn.Linear(128,1)
 		self.fc3.weight.data.uniform_(-self.EPS,self.EPS)
 
-	def forward(self, state, action):
 
+		self.fcs1.to(self.device)
+		self.fcs2.to(self.device)
+		self.fca1.to(self.device)
+		self.fc2.to(self.device)
+		self.fc3.to(self.device)
+
+	def forward(self, state, action):
+		state = state.to(self.device)
+		action = action.to(self.device)
 		s1 =  F.relu(self.fcs1(state))
 		s2 =  F.relu(self.fcs2(s1))
 		a1 =  F.relu(self.fca1(action))
@@ -61,9 +70,10 @@ class Critic(nn.Module):
 
 class Actor(nn.Module):
 
-	def __init__(self, state_dim, action_dim, max_action):
+	def __init__(self, state_dim, action_dim, max_action, device):
 
 		super(Actor, self).__init__()
+		self.device = device
 
 		self.state_dim = state_dim
 		self.action_dim = action_dim
@@ -82,8 +92,13 @@ class Actor(nn.Module):
 		self.fc4 = nn.Linear(64,action_dim)
 		self.fc4.weight.data.uniform_(-self.EPS,self.EPS)
 
-	def forward(self, state):
+		self.fc1.to(self.device)
+		self.fc2.to(self.device)
+		self.fc3.to(self.device)
+		self.fc4.to(self.device)
 
+	def forward(self, state):
+		state = state.to(self.device)
 		x =  F.relu(self.fc1(state))
 		x =  F.relu(self.fc2(x))
 		x =  F.relu(self.fc3(x))
@@ -170,7 +185,9 @@ class Memory:
 
 
 class Agent:
-	def __init__(self, state_size, action_size, max_action, memory, gpuid):
+	def __init__(self, state_size, action_size, max_action, memory, gpuid, device):
+		print(device)
+		self.device = device
 		self.gpuid = gpuid
 
 		self.state_size = state_size
@@ -193,36 +210,29 @@ class Agent:
 		self.copy(self.target_critic, self.critic)
 
 	def loadAllNetwork(self):
-		# Either load network if aviliable or creat new network to train
 		if os.path.exists('model/quadrotor_actor.pkl'):
 		    self.actor = torch.load('model/quadrotor_actor.pkl')
 		    print('Actor Model loaded')
 		else:
-		    self.actor = Actor(self.state_size, self.action_size, self.max_action)
+		    self.actor = Actor(self.state_size, self.action_size, self.max_action, self.device)
 
 		if os.path.exists('model/quadrotor_target_actor.pkl'):
 		    self.target_actor = torch.load('model/quadrotor_target_actor.pkl')
 		    print('Target Actor Model loaded')
 		else:
-		    self.target_actor = Actor(self.state_size, self.action_size, self.max_action)
+		    self.target_actor = Actor(self.state_size, self.action_size, self.max_action, self.device)
 
 		if os.path.exists('model/quadrotor_critic.pkl'):
 		    self.critic = torch.load('model/quadrotor_critic.pkl')
 		    print('Critic Model loaded')
 		else:
-		    self.critic = Critic(self.state_size, self.action_size)
+		    self.critic = Critic(self.state_size, self.action_size, self.device)
 
 		if os.path.exists('model/quadrotor_target_critic.pkl'):
 		    self.target_critic = torch.load('model/quadrotor_target_critic.pkl')
 		    print('Target Critic Model loaded')
 		else:
-		    self.target_critic = Critic(self.state_size, self.action_size)
-		
-		if self.gpuid >= 0:
-				self.actor  = self.actor.cuda()
-				self.critic = self.critic.cuda()
-				self.target_actor  = self.target_actor.cuda()
-				self.target_critic = self.target_critic.cuda()
+		    self.target_critic = Critic(self.state_size, self.action_size, self.device)
 
 	def saveNetwork(self,isbest):
 		if isbest:
@@ -235,18 +245,12 @@ class Agent:
 
 	def use_action(self,state):
 		state = Variable(torch.from_numpy(state))
-		if self.gpuid >= 0:
-				state = state.cuda()
-		
 		action = self.target_actor.forward(state).detach()
 		return action.cpu().numpy()#action.data.numpy()
 
 
 	def get_action(self, state):
 		state = Variable(torch.from_numpy(state))
-		if self.gpuid >= 0:
-			state = state.cuda()
-		
 		action = self.actor.forward(state).detach()
 		return action.cpu().numpy() + self.noiseMachine.randomNoise()
 
@@ -324,15 +328,14 @@ class Agent:
 		s,a,r,ns = self.memory.sample(self.batch_size)
 
 		s = Variable(torch.from_numpy(s))
+		s = s.to(self.device)
 		a = Variable(torch.from_numpy(a))
+		a = a.to(self.device)
 		r = Variable(torch.from_numpy(r))
+		r = r.to(self.device)
 		ns = Variable(torch.from_numpy(ns))
+		ns = ns.to(self.device)
 
-		if self.gpuid >= 0:
-			s = s.cuda()
-			a = a.cuda()
-			r = r.cuda()
-			ns = ns.cuda()
 
 		a2 = self.target_actor.forward(ns).detach()
 		next_val = torch.squeeze(self.target_critic.forward(ns, a2).detach())
