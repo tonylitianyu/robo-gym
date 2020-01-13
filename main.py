@@ -43,9 +43,10 @@ run = True
 render = True
 curr_reward = 0
 episode = 0
-reward_arr = [0.0]
+reward_arr,baseline_arr = [0.0],[0.0]
 x_axis_min = 0
 goodResult = False
+nonoise = False
 maxreward = -10000000
 
 env.setrender(render)
@@ -54,12 +55,13 @@ env.setdt(0.02)
 # Plot Init
 fig = plt.figure(figsize=(18,5))
 ax1 = fig.add_subplot(111)
-line, = ax1.plot(reward_arr)
+line1, = ax1.plot(reward_arr)
+line2, = ax1.plot(baseline_arr)
 plt.xlabel("Number of episodes");plt.ylabel("Step Average Reward")
 plt.grid();plt.ion();plt.show()
 
-# while run:
-while episode < 3000:
+while run:
+# while episode < 3000:
     episode += 1
     curr_state = np.float32(env.reset())
     agent.noiseMachine.resetNoise()
@@ -85,8 +87,10 @@ while episode < 3000:
             #try the model each 10 episodes
             if episode % 10 == 0:
                 action = agent.use_action(curr_state)
+                nonoise = True
             else:
                 action = agent.get_action(curr_state)
+                nonoise = False
 
         n_state, done = env.step(action)#input [thrust row pitch yaw]
         reward = agent.rewardFunc(n_state,action)
@@ -101,7 +105,7 @@ while episode < 3000:
             memory.add(curr_state,action,reward,np.float32(n_state))
             curr_state = n_state
 
-        agent.train(((r+1) % 2 == 0))
+        agent.train(((r+1) % 3 == 0))
 
     # if (episode+1) % 1 == 0:
         
@@ -110,7 +114,9 @@ while episode < 3000:
 
     #record reward for each episode
     reward_arr.append(curr_reward/r)
-
+    if nonoise:
+        baseline_arr.append(curr_reward/r)
+        
     #stop learnng condition
     if episode > 1000 and max(reward_arr) > 10000:
         goodResult = True
@@ -133,12 +139,16 @@ while episode < 3000:
         N = len(reward_arr)
         sample_sz = 1000.0
         samplestep = math.ceil(N/sample_sz)
-        xdata = np.arange(1,N,samplestep)
-        ydata = reward_arr[1::samplestep]
+        xdata1 = np.arange(1,N,samplestep)
+        xdata2 = np.arange(1,N+1,10)-1
+        ydata1 = reward_arr[1::samplestep]
+        baseline_arr[0] = reward_arr[1]
 
-        plt.axis([1, N, min(ydata)-10, max(ydata)+10])
-        line.set_xdata(xdata)
-        line.set_ydata(ydata)
+        plt.axis([1, N, min(ydata1)-10, max(ydata1)+10])
+        line1.set_xdata(xdata1)
+        line1.set_ydata(ydata1)
+        line2.set_xdata(xdata2)
+        line2.set_ydata(baseline_arr)
 
         # plt.axis([x_axis_min, max(episode,x_axis_min+5), min(reward_arr)-100, max(reward_arr)+100])
         # line.set_xdata(np.arange(len(reward_arr)),episode)

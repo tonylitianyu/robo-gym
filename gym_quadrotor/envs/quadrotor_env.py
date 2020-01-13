@@ -83,12 +83,13 @@ class QuadrotorEnv(gym.Env):
         ns = sol.y[:,-1]
         self.state = ns[:-4]
 
-        phi_   = self.state[6]
-        theta_ = self.state[7]
-        psi_   = self.state[8]
-        self.state[6] = self.bound(phi_,-self.max_bank_angle,self.max_bank_angle)
-        self.state[7] = self.bound(theta_,-self.max_bank_angle,self.max_bank_angle)
-        self.state[8] = self.bound(psi_,-self.max_bank_angle,self.max_bank_angle)
+        # phi_   = self.state[6]
+        # theta_ = self.state[7]
+        # psi_   = self.state[8]
+        # self.state[6] = self.bound(phi_,-self.max_bank_angle,self.max_bank_angle)
+        # self.state[7] = self.bound(theta_,-self.max_bank_angle,self.max_bank_angle)
+        # self.state[8] = self.bound(psi_,-self.max_bank_angle,self.max_bank_angle)
+
 
         reward = 0
         done = False
@@ -101,7 +102,8 @@ class QuadrotorEnv(gym.Env):
 
     def reset(self):
         # self.state = np.array([0,0,0,0,0,0,0,0,0,0,0,0],dtype=np.float32)
-        self.state = np.array([-5+10*random(),0,-5+10*random(),0,0+20*random(),0,0,0,0,0,0,0],dtype=np.float32)
+        self.state = np.array([-10+20*random(),-1+2*random(),-10+20*random(),-1+2*random(),-10+20*random(),-1+2*random(),\
+                              -0.1+0.2*random(),-0.05+0.1*random(),-0.1+0.2*random(),-0.05+0.1*random(),-0.1+0.2*random(),-0.05+0.1*random()],dtype=np.float32)
         if self.renderflg:
             self.drone.pos = vector(0,0,0)
             self.drone.axis = vector(1,0,0)

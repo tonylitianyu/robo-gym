@@ -97,7 +97,7 @@ class Actor(nn.Module):
 # https://ipython-books.github.io/134-simulating-a-stochastic-differential-equation/
 class NoiseGenerator:
 	def __init__(self,action_size,max_action):
-		self.sigma = 0.75 # std
+		self.sigma = 0.4 # std
 		self.mu = 0      # mean
 		self.tau = 1 	 # time const
 		self.dt = 0.02   # time step
@@ -217,7 +217,7 @@ class Agent:
 		    print('Target Critic Model loaded')
 		else:
 		    self.target_critic = Critic(self.state_size, self.action_size)
-		
+		# https://github.com/dgriff777/rl_a3c_pytorch Cuda checked against this repo
 		if self.gpuid >= 0:
 				self.actor  = self.actor.cuda()
 				self.critic = self.critic.cuda()
@@ -270,7 +270,7 @@ class Agent:
 		psi_   = state[8]
 		reward = 0
 
-		# You Nei Weier Reward
+		### You Nei Weier Reward
 		distance = math.sqrt((x**2)+(y**2)+(z**2))
 		o_error = abs(phi_)+abs(theta_)+abs(psi_)
 		if distance > 3:
@@ -282,7 +282,7 @@ class Agent:
 		# if distance < 1:
 		# 	reward = 2000
 
-		# Ken reward
+		### Ken reward
 		# agent_pos = np.array([x,y,z],dtype=float)
 		# des_pos   = np.array([0,0,0],dtype=float)
 		# distance  = np.linalg.norm(agent_pos-des_pos)
@@ -295,7 +295,7 @@ class Agent:
 			reward = reward - 0.5*min(max(x,-10),10)**2 + 30
 			reward = reward - 0.5*min(max(y,-10),10)**2 + 30
 
-		reward -= abs(np.sum(action[1:]))*0.5
+		reward -= abs(np.sum(action[1:]))*0.2
 		# if distance < 2:
 		# 	reward += 30.0/distance
 		# else:

@@ -1,7 +1,6 @@
 ====Ken TODO====
 1. (Maybe) log reward functions
 2. Tune the memory size parameter
-3. More random initial condition
 
 ====Future plans====
 1. Path following for drone
