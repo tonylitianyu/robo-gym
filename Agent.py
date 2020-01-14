@@ -51,6 +51,11 @@ class Critic(nn.Module):
 		s1 =  F.relu(self.fcs1(state))
 		s2 =  F.relu(self.fcs2(s1))
 		a1 =  F.relu(self.fca1(action))
+
+		if s2.dim() == 1:
+			s2 = s2.unsqueeze(0)
+			a1 = a1.unsqueeze(0)
+
 		x = torch.cat((s2,a1),dim=1)
 
 		x =  F.relu(self.fc2(x))
@@ -97,7 +102,7 @@ class Actor(nn.Module):
 # https://ipython-books.github.io/134-simulating-a-stochastic-differential-equation/
 class NoiseGenerator:
 	def __init__(self,action_size,max_action):
-		self.sigma = 0.4 # std
+		self.sigma = 0.75 # std
 		self.mu = 0      # mean
 		self.tau = 1 	 # time const
 		self.dt = 0.02   # time step
@@ -135,16 +140,15 @@ class OUNoise:
 		x = self.state
 		dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))
 		self.state = x + dx
-		return self.state
+		return np.float32(self.state)
 
-class Memory:
+class Memory1:
 	def __init__(self, size):
 		if os.path.exists('model/memory_list.p'):
-
 		    self.memory_list = pickle.load(open('model/memory_list.p','rb'))
 		else:
 			self.memory_list = deque(maxlen=size)
-
+		
 	def sample(self, count):
 
 		batch = []
@@ -156,6 +160,7 @@ class Memory:
 		a_arr = np.float32([arr[1] for arr in batch])
 		r_arr = np.float32([arr[2] for arr in batch])
 		next_s_arr = np.float32([arr[3] for arr in batch])
+		# td_arr = np.float32([arr[4] for arr in batch])
 
 		return s_arr, a_arr, r_arr, next_s_arr
 
@@ -167,7 +172,44 @@ class Memory:
 	def save(self):
 		pickle.dump(self.memory_list, open('model/memory_list.p','wb'))
 
+class Memory:
+	def __init__(self, size):
+		if os.path.exists('model/memory_list.p'):
+		    [self.memory_list,self.write_idx,self.size,self.full_replay] = pickle.load(open('model/memory_list.p','rb'))
+		else:
+			self.memory_list = np.zeros((size,4),dtype=object)
+			self.write_idx = 0
+			self.size = size
+			self.full_replay = False
+		
+	def sample(self, count):
 
+		if self.full_replay:
+			batch = np.random.choice(self.size, size=count, replace=False)
+		else:
+			if self.write_idx < count:
+				batch = np.arange(0,self.write_idx)
+			else:
+				batch = np.random.choice(self.write_idx, size=count, replace=False)
+
+		s_arr = np.float32(np.stack(self.memory_list[batch,0],axis=0))
+		a_arr = np.float32(np.stack(self.memory_list[batch,1],axis=0))
+		r_arr = np.float32(np.stack(self.memory_list[batch,2],axis=0))
+		next_s_arr = np.float32(np.stack(self.memory_list[batch,3],axis=0))
+
+		return s_arr, a_arr, r_arr, next_s_arr
+
+	def add(self, s, a, r, s1):
+
+		transition = np.array([s,a,r,s1],dtype=object)
+		self.memory_list[self.write_idx,:] = transition
+		self.write_idx += 1
+		self.write_idx = self.write_idx % self.size
+		if self.write_idx == 0:
+			self.full_replay = self.full_replay or True
+
+	def save(self):
+		pickle.dump([self.memory_list,self.write_idx,self.size,self.full_replay], open('model/memory_list.p','wb'))
 
 class Agent:
 	def __init__(self, state_size, action_size, max_action, memory, gpuid):
@@ -181,7 +223,7 @@ class Agent:
 		self.learning_rate_a = 0.0001
 		self.learning_rate_c = 10*self.learning_rate_a
 
-		self.noiseMachine = NoiseGenerator(self.action_size,self.max_action)
+		# self.noiseMachine = NoiseGenerator(self.action_size,self.max_action)
 		self.noiseMachine = OUNoise(self.action_size,0,0.15,0.2,self.max_action)
 		self.memory = memory
 		self.gpuid = gpuid
@@ -239,7 +281,7 @@ class Agent:
 				state = state.cuda()
 		
 		action = self.target_actor.forward(state).detach()
-		return action.cpu().numpy()#action.data.numpy()
+		return np.float32(action.cpu().numpy())#action.data.numpy()
 
 
 	def get_action(self, state):
@@ -248,7 +290,7 @@ class Agent:
 			state = state.cuda()
 		
 		action = self.actor.forward(state).detach()
-		return action.cpu().numpy() + self.noiseMachine.randomNoise()
+		return (action.cpu().numpy()) + self.noiseMachine.randomNoise()
 
 	def copy(self,target, source):
 		for target_param, source_param in zip(target.parameters(), source.parameters()):
@@ -339,6 +381,8 @@ class Agent:
 
 		y_expected = r + self.gamma*next_val
 		y_predicted = torch.squeeze(self.critic.forward(s, a)) # 0.001
+
+		td_err = y_expected-y_predicted
 
 		# compute critic loss, update the critic
 		loss_critic = F.smooth_l1_loss(y_predicted, y_expected)

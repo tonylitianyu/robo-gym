@@ -1,6 +1,7 @@
 ====Ken TODO====
 1. (Maybe) log reward functions
-2. Tune the memory size parameter
+3. https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8122622 
+   prioritized experience replay
 
 ====Future plans====
 1. Path following for drone
