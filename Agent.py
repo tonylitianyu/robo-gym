@@ -12,6 +12,7 @@ import pickle
 import math
 import time
 import copy
+from scipy.stats import rankdata
 
 def normalize_weight(size):
 	v = 1. / np.sqrt(size[0])
@@ -20,6 +21,21 @@ def normalize_weight(size):
 def  gelu_approx(x):
 	return torch.sigmoid(1.702*x)*x
 
+def compute_td_err(agent, s, a, r, s1):
+		a  = Variable(torch.from_numpy(a))
+		s  = Variable(torch.from_numpy(s))
+		s1 = Variable(torch.from_numpy(s1))
+
+		if agent.gpuid >= 0:
+			s  = s.cuda()
+			a  = a.cuda()
+			s1 = s1.cuda()
+		
+		a1 = agent.target_actor.forward(s1).detach()
+		next_val = torch.squeeze(agent.target_critic.forward(s1, a1).detach())
+		td_err = r + agent.gamma*next_val.cpu().numpy() - torch.squeeze(agent.critic.forward(s, a).detach()).cpu().numpy()
+
+		return td_err
 
 class Critic(nn.Module):
 
@@ -160,8 +176,6 @@ class Memory1:
 		a_arr = np.float32([arr[1] for arr in batch])
 		r_arr = np.float32([arr[2] for arr in batch])
 		next_s_arr = np.float32([arr[3] for arr in batch])
-		# td_arr = np.float32([arr[4] for arr in batch])
-
 		return s_arr, a_arr, r_arr, next_s_arr
 
 	def add(self, s, a, r, s1):
@@ -172,12 +186,78 @@ class Memory1:
 	def save(self):
 		pickle.dump(self.memory_list, open('model/memory_list.p','wb'))
 
+# Calculate TD error at sample
 class Memory:
 	def __init__(self, size):
 		if os.path.exists('model/memory_list.p'):
 		    [self.memory_list,self.write_idx,self.size,self.full_replay] = pickle.load(open('model/memory_list.p','rb'))
 		else:
 			self.memory_list = np.zeros((size,4),dtype=object)
+			self.write_idx = 0
+			self.size = size
+			self.full_replay = False
+		
+	def sample(self, count):
+
+		if self.full_replay:
+			batch = np.random.choice(self.size, size=count, replace=False)
+		else:
+			if self.write_idx <= count:
+				batch = np.arange(0,self.write_idx)
+			else:
+				batch = np.random.choice(self.write_idx, size=count, replace=False)
+
+		s_arr = np.float32(np.stack(self.memory_list[batch,0],axis=0))
+		a_arr = np.float32(np.stack(self.memory_list[batch,1],axis=0))
+		r_arr = np.float32(np.stack(self.memory_list[batch,2],axis=0))
+		next_s_arr = np.float32(np.stack(self.memory_list[batch,3],axis=0))
+
+		return s_arr, a_arr, r_arr, next_s_arr
+
+	def PER_sample(self, count, agent):
+
+		if self.full_replay:
+			s  = np.float32(np.stack(self.memory_list[:,0],axis=0))
+			a  = np.float32(np.stack(self.memory_list[:,1],axis=0))
+			r  = np.float32(np.stack(self.memory_list[:,2],axis=0))
+			s1 = np.float32(np.stack(self.memory_list[:,3],axis=0))
+			td_err = abs(compute_td_err(agent, s, a, r, s1))
+			D = 1.0/(td_err.size-rankdata(td_err)+1) # rankdata start from min
+			P = D/sum(D)
+			batch = np.random.choice(self.size, size=count, replace=False,p = P)
+		else:
+			if self.write_idx < count:
+				batch = np.arange(0,self.write_idx)
+			else:
+				batch = np.random.choice(self.write_idx, size=count, replace=False)
+
+		s_arr = np.float32(np.stack(self.memory_list[batch,0],axis=0))
+		a_arr = np.float32(np.stack(self.memory_list[batch,1],axis=0))
+		r_arr = np.float32(np.stack(self.memory_list[batch,2],axis=0))
+		next_s_arr = np.float32(np.stack(self.memory_list[batch,3],axis=0))
+
+		return s_arr, a_arr, r_arr, next_s_arr
+
+
+	def add(self, s, a, r, s1):
+
+		transition = np.array([s,a,r,s1],dtype=object)
+		self.memory_list[self.write_idx,:] = transition
+		self.write_idx += 1
+		self.write_idx = self.write_idx % self.size
+		if self.write_idx == 0:
+			self.full_replay = self.full_replay or True
+
+	def save(self):
+		pickle.dump([self.memory_list,self.write_idx,self.size,self.full_replay], open('model/memory_list.p','wb'))
+
+# Calculate TD Error at add
+class Memory3:
+	def __init__(self, size):
+		if os.path.exists('model/memory_list.p'):
+		    [self.memory_list,self.write_idx,self.size,self.full_replay] = pickle.load(open('model/memory_list.p','rb'))
+		else:
+			self.memory_list = np.zeros((size,5),dtype=object)
 			self.write_idx = 0
 			self.size = size
 			self.full_replay = False
@@ -199,9 +279,31 @@ class Memory:
 
 		return s_arr, a_arr, r_arr, next_s_arr
 
-	def add(self, s, a, r, s1):
+	def PER_sample(self, count, agent):
 
-		transition = np.array([s,a,r,s1],dtype=object)
+		td_arr = np.float32(np.stack(self.memory_list[:,4],axis=0))
+		if self.full_replay:
+			td_err = abs(td_arr)
+			D = 1.0/(td_err.size-rankdata(td_err)+1) # rankdata start from min
+			P = D/sum(D)
+			batch = np.random.choice(self.size, size=count, replace=False,p = P)
+		else:
+			if self.write_idx < count:
+				batch = np.arange(0,self.write_idx)
+			else:
+				batch = np.random.choice(self.write_idx, size=count, replace=False)
+
+		s_arr = np.float32(np.stack(self.memory_list[batch,0],axis=0))
+		a_arr = np.float32(np.stack(self.memory_list[batch,1],axis=0))
+		r_arr = np.float32(np.stack(self.memory_list[batch,2],axis=0))
+		next_s_arr = np.float32(np.stack(self.memory_list[batch,3],axis=0))
+
+		return s_arr, a_arr, r_arr, next_s_arr
+
+
+	def add(self, s, a, r, s1, td_err):
+
+		transition = np.array([s,a,r,s1,td_err],dtype=object)
 		self.memory_list[self.write_idx,:] = transition
 		self.write_idx += 1
 		self.write_idx = self.write_idx % self.size
@@ -364,6 +466,7 @@ class Agent:
 	def train(self,train_all):
 		
 		s,a,r,ns = self.memory.sample(self.batch_size)
+		# s,a,r,ns = self.memory.PER_sample(self.batch_size,self)
 
 		s = Variable(torch.from_numpy(s))
 		a = Variable(torch.from_numpy(a))
@@ -382,7 +485,8 @@ class Agent:
 		y_expected = r + self.gamma*next_val
 		y_predicted = torch.squeeze(self.critic.forward(s, a)) # 0.001
 
-		td_err = y_expected-y_predicted
+		# td_err = y_expected-y_predicted
+		# np.matmul(td_err*w_arr)/self.batch_size
 
 		# compute critic loss, update the critic
 		loss_critic = F.smooth_l1_loss(y_predicted, y_expected)

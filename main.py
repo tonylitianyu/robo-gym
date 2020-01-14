@@ -11,15 +11,20 @@ import torch
 from torch.autograd import Variable
 
 def compute_td_err(agent, s, a, r, s1):
-        a  = Variable(torch.from_numpy(a))
-        s  = Variable(torch.from_numpy(s))
-        s1 = Variable(torch.from_numpy(s1))
+		a  = Variable(torch.from_numpy(a))
+		s  = Variable(torch.from_numpy(s))
+		s1 = Variable(torch.from_numpy(s1))
 
-        a1 = agent.target_actor.forward(s1).detach()
-        next_val = torch.squeeze(agent.target_critic.forward(s1, a1).detach())
-        td_err = r + agent.gamma*next_val - torch.squeeze(agent.critic.forward(s, a).detach())
-        
-        return td_err.numpy()
+		if agent.gpuid >= 0:
+			s  = s.cuda()
+			a  = a.cuda()
+			s1 = s1.cuda()
+		
+		a1 = agent.target_actor.forward(s1).detach()
+		next_val = torch.squeeze(agent.target_critic.forward(s1, a1).detach())
+		td_err = r + agent.gamma*next_val.cpu().numpy() - torch.squeeze(agent.critic.forward(s, a).detach()).cpu().numpy()
+
+		return td_err
 
 env = gym.make('quad-v0')
 gpuid = -1
@@ -42,7 +47,7 @@ if start_new:
 
 #set RL agent property
 from Agent import Agent, Memory
-memory_size = 500000 # 200 for each episode, 400k = 2k episodes
+memory_size = 100000 # 200 for each episode, 400k = 2k episodes
 single_episode_time = 300
 memory = Memory(memory_size)
 agent  = Agent(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0],\
