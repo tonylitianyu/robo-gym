@@ -418,10 +418,10 @@ class Agent:
 		distance = math.sqrt((x**2)+(y**2)+(z**2))
 		o_error = abs(phi_)+abs(theta_)+abs(psi_)
 		if distance > 3:
-			reward -= (distance + 100*o_error)
+			reward -= (distance + 10*o_error)
 
 		else:
-			reward -= (0.01*distance + 10*o_error)
+			reward -= (0.1*distance + 30*o_error)
 
 		# if distance < 1:
 		# 	reward = 2000
